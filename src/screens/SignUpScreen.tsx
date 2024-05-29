@@ -1,17 +1,9 @@
-// PlayPointApp/src/screens/SignUpScreen.tsx
+// MobileApp/App/src/screens/SignUpScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../Navigation';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { registerUser } from '../services/api';
 
-type SignUpScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SignUp'>;
-
-interface Props {
-  navigation: SignUpScreenNavigationProp;
-}
-
-const SignUpScreen: React.FC<Props> = ({ navigation }) => {
+const SignUpScreen = ({ navigation }: { navigation: any }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,8 +51,8 @@ const SignUpScreen: React.FC<Props> = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleSignUp} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Signing Up...' : 'Sign Up'}</Text>
+      <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp} disabled={loading}>
+        <Text style={styles.signUpButtonText}>{loading ? 'Loading...' : 'Sign Up'}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -76,6 +68,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 16,
     textAlign: 'center',
+    fontWeight: 'bold',
   },
   input: {
     height: 40,
@@ -84,15 +77,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingLeft: 8,
   },
-  button: {
-    backgroundColor: '#6200ee',
-    padding: 12,
-    borderRadius: 4,
-    alignItems: 'center',
+  signUpButton: {
+    backgroundColor: '#FF5733',
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginBottom: 16,
   },
-  buttonText: {
+  signUpButtonText: {
     color: 'white',
-    fontSize: 16,
+    textAlign: 'center',
+    fontSize: 18,
   },
 });
 

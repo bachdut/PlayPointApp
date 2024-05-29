@@ -1,5 +1,6 @@
+// MobileApp/App/src/screens/LoginScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
 import { loginUser } from '../services/api';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -73,10 +74,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login Screen</Text>
+      <Text style={styles.logo}>PlayPoint</Text>
+      <Text style={styles.title}>LOGIN</Text>
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Username"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -88,8 +90,21 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Login" onPress={handleLogin} />
-      <Button title="Sign in with Google" onPress={handleGoogleSignIn} />
+      <TouchableOpacity onPress={() => Alert.alert('Forgot password pressed')}>
+        <Text style={styles.forgotPassword}>Forgot password?</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <Text style={styles.loginButtonText}>LOGIN</Text>
+      </TouchableOpacity>
+      <Text style={styles.orText}>or sign up using</Text>
+      <View style={styles.socialButtons}>
+        <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
+          <Image source={require('../assets/google.png')} style={styles.socialIcon} />
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+        <Text style={styles.signUp}>SIGN UP</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -99,6 +114,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 16,
+  },
+  logo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   title: {
     fontSize: 24,
@@ -111,6 +132,42 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
     paddingLeft: 8,
+  },
+  forgotPassword: {
+    color: 'gray',
+    textAlign: 'right',
+    marginBottom: 12,
+  },
+  loginButton: {
+    backgroundColor: '#FF5733',
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginBottom: 16,
+  },
+  loginButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 18,
+  },
+  orText: {
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  socialButton: {
+    marginHorizontal: 10,
+  },
+  socialIcon: {
+    width: 30,
+    height: 30,
+  },
+  signUp: {
+    textAlign: 'center',
+    color: '#FF5733',
   },
 });
 
