@@ -1,31 +1,42 @@
 #import "AppDelegate.h"
-
+#import <GoogleSignIn/GoogleSignIn.h>
 #import <React/RCTBundleURLProvider.h>
+#import <React/RCTRootView.h>
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  self.moduleName = @"PlayPointApp";
-  // You can add your custom initial props in the dictionary below.
-  // They will be passed down to the ViewController used by React Native.
-  self.initialProps = @{};
+  // Configure Google Sign-In
+  GIDConfiguration *signInConfig = [[GIDConfiguration alloc] initWithClientID:@"136528838841-f4qtnf6psgdhr2d71953slrsh0uvoosm.apps.googleusercontent.com"];
+  [GIDSignIn sharedInstance].configuration = signInConfig;
 
-  return [super application:application didFinishLaunchingWithOptions:launchOptions];
+  NSURL *jsCodeLocation;
+
+  #if DEBUG
+    jsCodeLocation = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
+  #else
+    jsCodeLocation = [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+  #endif
+
+  RCTRootView *rootView = [[RCTRootView alloc] initWithBundleURL:jsCodeLocation
+                                                      moduleName:@"PlayPointApp"
+                                               initialProperties:nil
+                                                   launchOptions:launchOptions];
+  rootView.backgroundColor = [[UIColor alloc] initWithRed:1.0f green:1.0f blue:1.0f alpha:1];
+
+  self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+  UIViewController *rootViewController = [UIViewController new];
+  rootViewController.view = rootView;
+  self.window.rootViewController = rootViewController;
+  [self.window makeKeyAndVisible];
+  return YES;
 }
 
-- (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
-{
-  return [self bundleURL];
-}
-
-- (NSURL *)bundleURL
-{
-#if DEBUG
-  return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
-#else
-  return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
-#endif
+- (BOOL)application:(UIApplication *)application
+            openURL:(NSURL *)url
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
+  return [[GIDSignIn sharedInstance] handleURL:url];
 }
 
 @end

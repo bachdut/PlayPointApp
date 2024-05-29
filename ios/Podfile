@@ -23,6 +23,8 @@ target 'PlayPointApp' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  pod 'GoogleSignIn'
+
   target 'PlayPointAppTests' do
     inherit! :complete
     # Pods for testing
