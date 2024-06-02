@@ -1,4 +1,3 @@
-// MobileApp/App/src/services/api.ts
 const API_URL = 'http://127.0.0.1:8888'; // Adjust if your backend is hosted elsewhere
 
 export const registerUser = async (username: string, email: string, password: string) => {
@@ -20,6 +19,7 @@ export const registerUser = async (username: string, email: string, password: st
 
 export const loginUser = async (email: string, password: string) => {
   try {
+    console.log('Sending login request:', { email, password });
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
@@ -27,7 +27,15 @@ export const loginUser = async (email: string, password: string) => {
       },
       body: JSON.stringify({ email, password }),
     });
+
+    console.log('Response status:', response.status);
     const data = await response.json();
+    console.log('Response data:', data);
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+
     return data;
   } catch (error) {
     console.error('Error logging in user:', error);
@@ -47,6 +55,46 @@ export const getCourts = async () => {
     return data;
   } catch (error) {
     console.error('Error fetching courts:', error);
+    throw error;
+  }
+};
+
+export const makeReservation = async (courtName: string, token: string) => {
+  try {
+    console.log('Making reservation for court:', courtName); // Debug log
+    const response = await fetch(`${API_URL}/reserve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ court_name: courtName }),
+    });
+    const data = await response.json();
+    console.log('Reservation response data:', data); // Debug log
+    return data;
+  } catch (error) {
+    console.error('Error making reservation:', error);
+    throw error;
+  }
+};
+
+export const cancelReservation = async (courtName: string, token: string) => {
+  try {
+    console.log('Cancelling reservation for court:', courtName); // Debug log
+    const response = await fetch(`${API_URL}/delete-reservation`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ court_name: courtName }),
+    });
+    const data = await response.json();
+    console.log('Cancel reservation response data:', data); // Debug log
+    return data;
+  } catch (error) {
+    console.error('Error cancelling reservation:', error);
     throw error;
   }
 };
