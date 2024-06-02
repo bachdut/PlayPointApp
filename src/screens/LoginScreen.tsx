@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } fro
 import { loginUser } from '../services/api';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../Navigation';
+import { RootStackParamList } from '../Navigation'; // Ensure this path is correct
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -13,9 +13,10 @@ type LoginScreenRouteProp = RouteProp<RootStackParamList, 'Login'>;
 type Props = {
   navigation: LoginScreenNavigationProp;
   route: LoginScreenRouteProp;
+  onLogin: (token: string) => void;
 };
 
-const LoginScreen: React.FC<Props> = ({ navigation }) => {
+const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -26,15 +27,20 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const handleLogin = async () => {
+    console.log('Email:', email);
+    console.log('Password:', password);
     try {
       const response = await loginUser(email, password);
+      console.log('Response:', response);
       if (response.access_token) {
+        onLogin(response.access_token); // Call onLogin with the token
         Alert.alert('Login successful');
-        navigation.navigate('Home');
+        navigation.replace('Main'); // Ensure 'Main' is defined in RootStackParamList
       } else {
         Alert.alert('Login failed', 'Invalid credentials');
       }
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert('Login failed', 'An error occurred');
     }
   };
@@ -54,10 +60,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       });
       const data = await response.json();
       if (response.ok) {
-        Alert.alert('Login successful');
-        navigation.navigate('Home');
+        onLogin(data.access_token); // Call onLogin with the token from the backend
+        Alert.alert('Google Sign-In successful');
+        navigation.replace('Main'); // Ensure 'Main' is defined in RootStackParamList
       } else {
-        Alert.alert('Login failed', data.message);
+        Alert.alert('Google Sign-In failed', data.message);
       }
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
