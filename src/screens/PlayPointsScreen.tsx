@@ -1,4 +1,3 @@
-// MobileApp/App/src/screens/PlayPointsScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, FlatList } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
