@@ -6,12 +6,19 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import PlayPointsScreen from './src/screens/PlayPointsScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import PlaceholderScreen from './src/screens/PlaceholderScreen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const PlayPointsStack = () => (
+  <Stack.Navigator initialRouteName="PlayPoints">
+    <Stack.Screen name="PlayPoints" component={PlayPointsScreen} />
+  </Stack.Navigator>
+);
 
 const App = () => {
   const [token, setToken] = useState<string | null>(null);
@@ -50,9 +57,7 @@ const App = () => {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="PlayPoints">
-        {props => <PlayPointsScreen {...props} token={token} />}
-      </Tab.Screen>
+      <Tab.Screen name="PlayPoints" component={PlayPointsStack} />
       <Tab.Screen name="CatchUp" component={PlaceholderScreen} />
       <Tab.Screen name="TheShop" component={PlaceholderScreen} />
       <Tab.Screen name="Profile" component={PlaceholderScreen} />
@@ -67,6 +72,7 @@ const App = () => {
           {props => <LoginScreen {...props} onLogin={handleLogin} />}
         </Stack.Screen>
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>

@@ -1,10 +1,9 @@
-// MobileApp/App/src/screens/LoginScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
 import { loginUser } from '../services/api';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../Navigation'; // Ensure this path is correct
+import { RootStackParamList } from '../Navigation';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -22,7 +21,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: '136528838841-f4qtnf6psgdhr2d71953slrsh0uvoosm.apps.googleusercontent.com', // Replace with your actual web client ID from Google Cloud Console
+      webClientId: '136528838841-f4qtnf6psgdhr2d71953slrsh0uvoosm.apps.googleusercontent.com',
     });
   }, []);
 
@@ -97,7 +96,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity onPress={() => Alert.alert('Forgot password pressed')}>
+      <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')}>
         <Text style={styles.forgotPassword}>Forgot password?</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>

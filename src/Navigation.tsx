@@ -3,10 +3,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import PlayPointsScreen from './screens/PlayPointsScreen';
-import LoginScreen from './screens/LoginScreen';
-import SignUpScreen from './screens/SignUpScreen';
-import PlaceholderScreen from './screens/PlaceholderScreen';
+import PlayPointsScreen from '../src/screens/PlayPointsScreen';
+import LoginScreen from '../src/screens/LoginScreen';
+import SignUpScreen from '../src/screens/SignUpScreen';
+import ResetPasswordScreen from '../src/screens/ResetPasswordScreen';
+import PlaceholderScreen from '../src/screens/PlaceholderScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -17,6 +18,7 @@ const PlayPointsStack = () => {
       <Stack.Screen name="PlayPoints" component={PlayPointsScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </Stack.Navigator>
   );
 };
