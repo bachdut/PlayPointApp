@@ -14,9 +14,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const PlayPointsStack = () => (
+const PlayPointsStack = ({ token }: { token: string | null }) => (
   <Stack.Navigator initialRouteName="PlayPoints">
-    <Stack.Screen name="PlayPoints" component={PlayPointsScreen} />
+    <Stack.Screen name="PlayPoints">
+      {props => <PlayPointsScreen {...props} token={token} />}
+    </Stack.Screen>
   </Stack.Navigator>
 );
 
@@ -57,7 +59,9 @@ const App = () => {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="PlayPoints" component={PlayPointsStack} />
+      <Tab.Screen name="PlayPoints">
+        {props => <PlayPointsStack {...props} token={token} />}
+      </Tab.Screen>
       <Tab.Screen name="CatchUp" component={PlaceholderScreen} />
       <Tab.Screen name="TheShop" component={PlaceholderScreen} />
       <Tab.Screen name="Profile" component={PlaceholderScreen} />
