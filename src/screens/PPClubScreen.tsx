@@ -9,10 +9,15 @@ const PPClubScreen = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const productsData = await getPPClubProducts();
+        const response = await fetch('http://127.0.0.1:8888/get-products');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const productsData = await response.json();
         setProducts(productsData);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching PP Club products:', error);
+        Alert.alert('Error', `Failed to fetch products: ${error.message}`);
       }
     };
     fetchProducts();
@@ -34,7 +39,7 @@ const PPClubScreen = () => {
 
   const renderProduct = ({ item }) => (
     <View style={styles.productContainer}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
+      <Image source={{ uri: item.image_url }} style={styles.productImage} />
       <View style={styles.productDetails}>
         <Text style={styles.productName}>{item.name}</Text>
         <Text style={styles.productDescription}>{item.description}</Text>
