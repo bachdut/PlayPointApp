@@ -136,3 +136,69 @@ export const sendResetPasswordEmail = async (email: string) => {
     throw error;
   }
 };
+
+export const getGroupingProducts = async () => {
+  try {
+    const response = await fetch(`${API_URL}/grouping-products`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching grouping products:', error);
+    throw error;
+  }
+};
+
+export const joinGroupPurchase = async (productId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/join-group-purchase`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productId }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error joining group purchase:', error);
+    throw error;
+  }
+};
+
+export const getPPClubProducts = async () => {
+  try {
+    const response = await fetch(`${API_URL}/ppclub-products`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching PP Club products:', error);
+    throw error;
+  }
+};
+
+export const buyProduct = async (productId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/buy-product`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productId }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error buying product:', error);
+    throw error;
+  }
+};
