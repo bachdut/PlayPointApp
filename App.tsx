@@ -1,3 +1,4 @@
+// MobileApp/App/App.tsx
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -7,6 +8,7 @@ import SignUpScreen from './src/screens/SignUpScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import AppNavigator from './src/Navigation';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { CartProvider } from './src/context/CartContext';
 
 const Stack = createStackNavigator();
 
@@ -24,18 +26,20 @@ const App = () => {
   };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login">
-          {props => <LoginScreen {...props} onLogin={handleLogin} />}
-        </Stack.Screen>
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-        <Stack.Screen name="Main">
-          {props => <AppNavigator {...props} token={token} />}
-        </Stack.Screen>
-      </Stack.Navigator>
-    </NavigationContainer>
+    <CartProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen name="Login">
+            {props => <LoginScreen {...props} onLogin={handleLogin} />}
+          </Stack.Screen>
+          <Stack.Screen name="SignUp" component={SignUpScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          <Stack.Screen name="Main">
+            {props => <AppNavigator {...props} token={token} />}
+          </Stack.Screen>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </CartProvider>
   );
 };
 
