@@ -18,7 +18,10 @@ const TopTab = createMaterialTopTabNavigator();
 
 const PlayPointsStack = ({ token }: { token: string | null }) => (
   <Stack.Navigator initialRouteName="PlayPoints">
-    <Stack.Screen name="PlayPoints">
+    <Stack.Screen 
+      name="PlayPoints" 
+      options={{ headerTitle: 'PlayPoints' }} 
+    >
       {props => <PlayPointsScreen {...props} token={token} />}
     </Stack.Screen>
   </Stack.Navigator>
@@ -55,8 +58,11 @@ const AppNavigator = ({ token }: { token: string | null }) => (
       tabBarInactiveTintColor: 'gray',
     })}
   >
-    <Tab.Screen name="PlayPoints">
-      {props => <PlayPointsStack {...props} token={token} />}
+    <Tab.Screen 
+      name="PlayPoints" 
+      options={{ headerTitle: 'PlayPoints', headerShown: false }}
+    >
+      {props => <PlayPointsScreen {...props} token={token} />}
     </Tab.Screen>
     <Tab.Screen name="CatchUp" component={PlaceholderScreen} />
     <Tab.Screen name="TheShop" component={ShopStack} />

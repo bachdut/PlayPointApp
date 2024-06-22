@@ -9,25 +9,22 @@ const PPClubScreen = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8888/get-products');
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const productsData = await response.json();
+        const productsData = await getPPClubProducts();
         setProducts(productsData);
       } catch (error) {
         console.error('Error fetching PP Club products:', error);
-        Alert.alert('Error', `Failed to fetch products: ${error.message}`);
+        Alert.alert('Error', 'Failed to fetch products. Please try again later.');
       }
     };
     fetchProducts();
   }, []);
 
-  const handleBuy = async (productId) => {
+  const handleBuy = async (productId: string) => {
+    const userId = '123'; // Replace this with the actual user ID obtained from button click or user context
     try {
-      const response = await buyProduct(productId);
+      const response = await buyProduct(productId, userId);
       if (response.success) {
-        Alert.alert('Purchased', 'You have successfully purchased the product!');
+        Alert.alert('Purchased', 'The product has been added to your Cart!');
       } else {
         Alert.alert('Error', response.message);
       }

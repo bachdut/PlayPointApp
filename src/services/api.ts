@@ -137,21 +137,6 @@ export const sendResetPasswordEmail = async (email: string) => {
   }
 };
 
-export const getGroupingProducts = async () => {
-  try {
-    const response = await fetch(`${API_URL}/grouping-products`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching grouping products:', error);
-    throw error;
-  }
-};
 
 export const joinGroupPurchase = async (productId: string) => {
   try {
@@ -160,7 +145,7 @@ export const joinGroupPurchase = async (productId: string) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ product_id: productId }),
     });
     const data = await response.json();
     return data;
@@ -172,7 +157,7 @@ export const joinGroupPurchase = async (productId: string) => {
 
 export const getPPClubProducts = async () => {
   try {
-    const response = await fetch(`${API_URL}/ppclub-products`, {
+    const response = await fetch(`${API_URL}/get-products`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -186,19 +171,35 @@ export const getPPClubProducts = async () => {
   }
 };
 
-export const buyProduct = async (productId: string) => {
+export const buyProduct = async (productId: string, userId: string) => {
   try {
     const response = await fetch(`${API_URL}/buy-product`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ product_id: productId, user_id: userId }),
     });
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error buying product:', error);
+    console.error('Error purchasing product:', error);
+    throw error;
+  }
+};
+
+export const getGroupProducts = async () => {
+  try {
+    const response = await fetch(`${API_URL}/get-group-products`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching group products:', error);
     throw error;
   }
 };
