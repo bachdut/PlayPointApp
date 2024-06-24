@@ -1,12 +1,14 @@
 // MobileApp/App/src/screens/PPClubScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
-import { getPPClubProducts, buyProduct } from '../services/api';
+import CartContext from '../context/CartContext';
+import { getPPClubProducts } from '../services/api';
 
 const PPClubScreen = () => {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = React.useState([]);
+  const { addToCart } = useContext(CartContext);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchProducts = async () => {
       try {
         const productsData = await getPPClubProducts();
@@ -19,19 +21,9 @@ const PPClubScreen = () => {
     fetchProducts();
   }, []);
 
-  const handleBuy = async (productId: string) => {
-    const userId = '123'; // Replace this with the actual user ID obtained from button click or user context
-    try {
-      const response = await buyProduct(productId, userId);
-      if (response.success) {
-        Alert.alert('Purchased', 'The product has been added to your Cart!');
-      } else {
-        Alert.alert('Error', response.message);
-      }
-    } catch (error) {
-      console.error('Error purchasing product:', error);
-      Alert.alert('Error', 'An error occurred while purchasing the product.');
-    }
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    Alert.alert('Added to Cart', 'The product has been added to your cart!');
   };
 
   const renderProduct = ({ item }) => (
@@ -41,8 +33,8 @@ const PPClubScreen = () => {
         <Text style={styles.productName}>{item.name}</Text>
         <Text style={styles.productDescription}>{item.description}</Text>
         <Text style={styles.productPrice}>${item.price}</Text>
-        <TouchableOpacity style={styles.buyButton} onPress={() => handleBuy(item.id)}>
-          <Text style={styles.buyButtonText}>Buy Now</Text>
+        <TouchableOpacity style={styles.addButton} onPress={() => handleAddToCart(item)}>
+          <Text style={styles.addButtonText}>Add to Cart</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -103,13 +95,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginVertical: 8,
   },
-  buyButton: {
+  addButton: {
     backgroundColor: '#FF5733',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 25,
   },
-  buyButtonText: {
+  addButtonText: {
     color: 'white',
     textAlign: 'center',
     fontSize: 16,
