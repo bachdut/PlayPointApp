@@ -11,6 +11,7 @@ import PlaceholderScreen from '../src/screens/PlaceholderScreen';
 import GroupingScreen from '../src/screens/GroupingScreen';
 import PPClubScreen from '../src/screens/PPClubScreen';
 import CartScreen from '../src/screens/CartScreen';
+import AboutScreen from '../src/screens/AboutScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import CartContext from '../src/context/CartContext';
@@ -116,7 +117,11 @@ const AppNavigator = ({ token }) => (
       options={{ headerShown: false }} // Hide the default header
     />
     <Tab.Screen name="Profile" component={PlaceholderScreen} />
-    <Tab.Screen name="About" component={PlaceholderScreen} />
+    <Tab.Screen 
+      name="About" 
+      component={AboutScreen}
+      options={{ headerShown: false }}
+    />
   </Tab.Navigator>
 );
 
