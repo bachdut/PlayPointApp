@@ -34,7 +34,7 @@ const App = () => {
           </Stack.Screen>
           <Stack.Screen name="SignUp" component={SignUpScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-          <Stack.Screen name="Main">
+          <Stack.Screen name="Main" options={{ headerShown: false }}>
             {props => <AppNavigator {...props} token={token} />}
           </Stack.Screen>
         </Stack.Navigator>
