@@ -1,4 +1,5 @@
 const API_URL = 'http://127.0.0.1:8888'; // Adjust if your backend is hosted elsewhere
+import axios from 'axios';
 
 export const registerUser = async (username: string, email: string, password: string) => {
   try {
@@ -200,6 +201,46 @@ export const getGroupProducts = async () => {
     return data;
   } catch (error) {
     console.error('Error fetching group products:', error);
+    throw error;
+  }
+};
+
+export const fetchUserDetails = async (token: string) => {
+  const response = await fetch(`${API_URL}/user-details`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    console.error('Failed to fetch user details:', response.status, response.statusText); // Add this line
+    throw new Error('Failed to fetch user details');
+  }
+  return response.json();
+};
+
+export const updateProfile = async (token: string, profileData: any) => {
+  try {
+    const formData = new FormData();
+
+    // Append profile data to formData
+    for (const key in profileData) {
+      formData.append(key, profileData[key]);
+    }
+
+    const response = await axios.put(`${API_URL}/update-profile`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status !== 200) {
+      throw new Error('Failed to update profile');
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error updating profile:', error);
     throw error;
   }
 };

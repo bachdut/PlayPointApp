@@ -12,6 +12,7 @@ import GroupingScreen from '../src/screens/GroupingScreen';
 import PPClubScreen from '../src/screens/PPClubScreen';
 import CartScreen from '../src/screens/CartScreen';
 import AboutScreen from '../src/screens/AboutScreen';
+import ProfileScreen from '../src/screens/ProfileScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import CartContext from '../src/context/CartContext';
@@ -72,7 +73,7 @@ const ShopStack = ({ navigation }) => {
   );
 };
 
-const PlayPointsStack = ({ token }) => (
+const PlayPointsStack = ({ token }: { token: string }) => (
   <Stack.Navigator initialRouteName="PlayPoints">
     <Stack.Screen 
       name="PlayPoints" 
@@ -83,7 +84,7 @@ const PlayPointsStack = ({ token }) => (
   </Stack.Navigator>
 );
 
-const AppNavigator = ({ token }) => (
+const AppNavigator = ({ token }: { token: string }) => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused, color, size }) => {
@@ -114,9 +115,11 @@ const AppNavigator = ({ token }) => (
     <Tab.Screen 
       name="TheShop" 
       component={ShopStack} 
-      options={{ headerShown: false }} // Hide the default header
+      options={{ headerShown: false }} 
     />
-    <Tab.Screen name="Profile" component={PlaceholderScreen} />
+    <Tab.Screen name="Profile">
+      {props => <ProfileScreen {...props} token={token} />}
+    </Tab.Screen>
     <Tab.Screen 
       name="About" 
       component={AboutScreen}
