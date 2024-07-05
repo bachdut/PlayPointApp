@@ -1,4 +1,5 @@
 const API_URL = 'http://127.0.0.1:8888'; // Adjust if your backend is hosted elsewhere
+import axios from 'axios';
 
 export const registerUser = async (username: string, email: string, password: string) => {
   try {
@@ -99,7 +100,6 @@ export const cancelReservation = async (courtName: string, token: string) => {
   }
 };
 
-
 export const resetPassword = async (email: string) => {
   try {
     const response = await fetch(`${API_URL}/reset-password`, {
@@ -136,7 +136,6 @@ export const sendResetPasswordEmail = async (email: string) => {
     throw error;
   }
 };
-
 
 export const joinGroupPurchase = async (productId: string) => {
   try {
@@ -200,6 +199,80 @@ export const getGroupProducts = async () => {
     return data;
   } catch (error) {
     console.error('Error fetching group products:', error);
+    throw error;
+  }
+};
+
+export const fetchUserDetails = async (token: string) => {
+  const response = await fetch(`${API_URL}/user-details`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    console.error('Failed to fetch user details:', response.status, response.statusText); // Add this line
+    throw new Error('Failed to fetch user details');
+  }
+  return response.json();
+};
+
+export const updateProfile = async (token: string, profileData: any) => {
+  try {
+    const formData = new FormData();
+
+    for (const key in profileData) {
+      if (key === 'profilePicture' && profileData[key]) {
+        formData.append(key, {
+          uri: profileData[key],
+          type: 'image/jpeg',
+          name: `${profileData.id}.jpg` // Use the user ID for the filename
+        } as any);
+      } else {
+        formData.append(key, profileData[key]);
+      }
+    }
+
+    const response = await axios.put(`${API_URL}/update-profile`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status !== 200) {
+      throw new Error('Failed to update profile');
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+};
+
+export const uploadProfilePicture = async (token: string, file: any) => {
+  try {
+    const formData = new FormData();
+    formData.append('profile_picture', {
+      uri: file.uri,
+      type: file.type,
+      name: file.fileName,
+    });
+
+    const response = await axios.post(`${API_URL}/upload-profile-picture`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status !== 200) {
+      throw new Error('Failed to upload profile picture');
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
     throw error;
   }
 };
