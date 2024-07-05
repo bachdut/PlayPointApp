@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { fetchUserDetails, updateProfile } from '../services/api';
 import CartContext from '../context/CartContext';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
 
 interface ProfileScreenProps {
@@ -12,7 +13,7 @@ interface UserProfile {
   username: string;
   dateOfBirth: string;
   gender: string;
-  healthDeclaration: string;
+  healthDeclaration: boolean;
   email: string;
   phone: string;
   address: string;
@@ -31,7 +32,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
     username: '',
     dateOfBirth: '',
     gender: '',
-    healthDeclaration: '',
+    healthDeclaration: false,
     email: '',
     phone: '',
     address: '',
@@ -40,6 +41,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
     sportRule: '',
     profilePicture: '', // Added profilePicture
   });
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   useEffect(() => {
     const loadUserDetails = async () => {
@@ -58,6 +60,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
 
   const handleSave = async () => {
     try {
+      // Ensure dateOfBirth is not null
+      if (!profile.dateOfBirth || profile.dateOfBirth.toLowerCase() === 'null') {
+        profile.dateOfBirth = '';
+      }
+      console.log('handleSave triggered');
       await updateProfile(token, profile);
       setOriginalProfile(profile);
       setIsEditing(false);
@@ -76,6 +83,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
   };
 
   const handleImagePick = () => {
+    if (!isEditing) {
+      return;
+    }
+
     launchImageLibrary({}, (response: ImagePickerResponse) => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
@@ -88,6 +99,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
     });
   };
 
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date: Date) => {
+    setProfile({ ...profile, dateOfBirth: date.toISOString().split('T')[0] });
+    hideDatePicker();
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color="#FF5733" />;
   }
@@ -97,20 +121,30 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
       <Text style={styles.title}>Profile</Text>
       <View style={styles.imageContainer}>
         {profile.profilePicture ? (
-          <Image source={{ uri: profile.profilePicture }} style={styles.profileImage} />
+            <Image source={{ uri: profile.profilePicture }} style={styles.profileImage} />
         ) : (
-          <Text style={styles.imagePlaceholder}>150 x 150</Text>
+            <Text style={styles.imagePlaceholder}>150 x 150</Text>
         )}
-        <TouchableOpacity onPress={handleImagePick}>
-          <Text style={styles.addImageText}>ADD IMAGE</Text>
-        </TouchableOpacity>
+        {isEditing && (
+            <TouchableOpacity onPress={handleImagePick}>
+            <Text style={styles.addImageText}>ADD IMAGE</Text>
+            </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.sectionTitle}>Basic Info</Text>
       <ProfileField label="Username" value={profile.username} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, username: text })} />
-      <ProfileField label="Date Of Birth" value={profile.dateOfBirth} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, dateOfBirth: text })} />
+      <TouchableOpacity onPress={showDatePicker} disabled={!isEditing}>
+        <ProfileField label="Date Of Birth" value={profile.dateOfBirth} editable={false} />
+      </TouchableOpacity>
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
+      />
       <ProfileField label="Gender" value={profile.gender} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, gender: text })} />
-      <ProfileField label="Health Declaration" value={profile.healthDeclaration} editable={false} />
+      <ProfileField label="Health Declaration" value={profile.healthDeclaration ? 'true' : 'false'} editable={false} />
 
       <Text style={styles.sectionTitle}>Contact Info</Text>
       <ProfileField label="Email" value={profile.email} editable={false} />
@@ -180,6 +214,11 @@ const styles = StyleSheet.create({
     color: '#FF5733',
     marginTop: 8,
   },
+  profileImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -211,6 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 16,
+    marginBottom: 32,
   },
   button: {
     backgroundColor: '#FF5733',
@@ -229,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignSelf: 'center',
     marginTop: 16,
-    marginBottom: 16,
+    marginBottom: 32,
   },
   editButtonText: {
     color: 'white',
