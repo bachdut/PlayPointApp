@@ -1,11 +1,12 @@
-// MobileApp/App/src/screens/PlaceholderScreen.tsx
+// MobileApp/App/src/screens/HostScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const PlaceholderScreen = () => {
+const HostScreen = () => {
   return (
     <View style={styles.container}>
-      <Text>This is a placeholder screen</Text>
+      <Text style={styles.title}>Host a Game</Text>
+      {/* Add your hosting game UI here */}
     </View>
   );
 };
@@ -16,6 +17,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
 });
 
-export default PlaceholderScreen;
+export default HostScreen;
