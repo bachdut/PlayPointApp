@@ -1,9 +1,11 @@
 // MobileApp/App/src/Navigation.tsx
+
 import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import PlayPointsScreen from '../src/screens/PlayPointsScreen';
+import JoinScreen from '../src/screens/JoinScreen';
 import LoginScreen from '../src/screens/LoginScreen';
 import SignUpScreen from '../src/screens/SignUpScreen';
 import ResetPasswordScreen from '../src/screens/ResetPasswordScreen';
@@ -81,6 +83,11 @@ const PlayPointsStack = ({ token }: { token: string }) => (
     >
       {props => <PlayPointsScreen {...props} token={token} />}
     </Stack.Screen>
+    <Stack.Screen 
+      name="Join" 
+      component={JoinScreen} 
+      options={{ headerTitle: 'Join a Court' }} 
+    />
   </Stack.Navigator>
 );
 
@@ -109,7 +116,7 @@ const AppNavigator = ({ token }: { token: string }) => (
     })}
   >
     <Tab.Screen name="PlayPoints">
-      {props => <PlayPointsScreen {...props} token={token} />}
+      {props => <PlayPointsStack {...props} token={token} />}
     </Tab.Screen>
     <Tab.Screen name="CatchUp" component={PlaceholderScreen} />
     <Tab.Screen 
