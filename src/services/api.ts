@@ -1,6 +1,20 @@
 const API_URL = 'http://127.0.0.1:8888'; // Adjust if your backend is hosted elsewhere
 import axios from 'axios';
 
+export interface Court {
+  id: number;
+  name: string;
+  location: string;
+  available_seats: number;
+  price: number;
+  available_date: string;
+  available_time: string;
+  image: string;
+  category: string;
+  level: string;
+  players_joined: number;
+}
+
 export const registerUser = async (username: string, email: string, password: string) => {
   try {
     const response = await fetch(`${API_URL}/register`, {
@@ -273,6 +287,25 @@ export const uploadProfilePicture = async (token: string, file: any) => {
     return response.data;
   } catch (error) {
     console.error('Error uploading profile picture:', error);
+    throw error;
+  }
+};
+
+export const getCourtDetails = async (courtId: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/court-details/${courtId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching court details:', error);
     throw error;
   }
 };

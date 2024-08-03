@@ -1,5 +1,3 @@
-// MobileApp/App/src/Navigation.tsx
-
 import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -15,6 +13,7 @@ import PPClubScreen from '../src/screens/PPClubScreen';
 import CartScreen from '../src/screens/CartScreen';
 import AboutScreen from '../src/screens/AboutScreen';
 import ProfileScreen from '../src/screens/ProfileScreen';
+import GameDetailsScreen from '../src/screens/GameDetailsScreen'; 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { TouchableOpacity, View, Text } from 'react-native';
 import CartContext from '../src/context/CartContext';
@@ -85,9 +84,16 @@ const PlayPointsStack = ({ token }: { token: string }) => (
     </Stack.Screen>
     <Stack.Screen 
       name="Join" 
-      component={JoinScreen} 
-      options={{ headerTitle: 'Join a Court' }} 
-    />
+      options={{ headerTitle: 'Join a Court' }}
+    >
+      {props => <JoinScreen {...props} token={token} />}
+    </Stack.Screen>
+    <Stack.Screen 
+      name="GameDetails" 
+      options={{ headerTitle: 'Game Details' }}
+    >
+      {props => <GameDetailsScreen {...props} token={token} />}
+    </Stack.Screen>
   </Stack.Navigator>
 );
 
