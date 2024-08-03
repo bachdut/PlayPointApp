@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { getCourtDetails, cancelReservation } from '../services/api';
+import { getCourtDetails, makeReservation, cancelReservation } from '../services/api';
 
 type RootStackParamList = {
-  GameDetails: { courtId: number, token: string };
+  GameDetails: { courtId: number; token: string };
 };
 
 type GameDetailsScreenRouteProp = RouteProp<RootStackParamList, 'GameDetails'>;
@@ -14,13 +14,11 @@ const GameDetailsScreen: React.FC = () => {
   const { courtId, token } = route.params;
   const [courtDetails, setCourtDetails] = useState<any | null>(null);
 
-  console.log('Received courtId:', courtId);  // Debug log
-
   useEffect(() => {
     if (courtId !== undefined) {
       const fetchCourtDetails = async () => {
         try {
-          const details = await getCourtDetails(courtId.toString());
+          const details = await getCourtDetails(courtId.toString(), token);
           setCourtDetails(details);
         } catch (error) {
           console.error('Error fetching court details:', error);
@@ -35,23 +33,33 @@ const GameDetailsScreen: React.FC = () => {
     }
   }, [courtId]);
 
-  const handleUnjoinMatch = async () => {
+  const handleJoinGame = async () => {
+    try {
+      const response = await makeReservation(courtDetails.name, token);
+      if (response.message === 'Reservation successful') {
+        Alert.alert('Success', 'You have successfully joined the game!');
+        setCourtDetails({ ...courtDetails, has_reserved: true });
+      } else {
+        Alert.alert('Failed', response.message);
+      }
+    } catch (error) {
+      console.error('Error joining game:', error);
+      Alert.alert('Error', 'Unable to join game');
+    }
+  };
+
+  const handleUnjoinGame = async () => {
     try {
       const response = await cancelReservation(courtDetails.name, token);
       if (response.message === 'Reservation deleted') {
-        Alert.alert('Unjoin Match', 'Successfully unjoined the match');
-        // Update court details locally to reflect the unjoined match
-        setCourtDetails((prevDetails: any) => ({
-          ...prevDetails,
-          available_seats: prevDetails.available_seats + 1,
-          players_joined: prevDetails.players_joined - 1,
-        }));
+        Alert.alert('Success', 'You have successfully unjoined the game!');
+        setCourtDetails({ ...courtDetails, has_reserved: false });
       } else {
-        Alert.alert('Error', response.message || 'Failed to unjoin match');
+        Alert.alert('Failed', response.message);
       }
     } catch (error) {
-      console.error('Error unjoining match:', error);
-      Alert.alert('Error', 'Unable to unjoin match');
+      console.error('Error unjoining game:', error);
+      Alert.alert('Error', 'Unable to unjoin game');
     }
   };
 
@@ -74,12 +82,21 @@ const GameDetailsScreen: React.FC = () => {
       <Text>Date: {courtDetails.available_date}</Text>
       <Text>Time: {courtDetails.available_time}</Text>
       <Text>Players Joined: {courtDetails.players_joined}</Text>
-      <TouchableOpacity
-        style={styles.joinButton}
-        onPress={handleUnjoinMatch}
-      >
-        <Text style={styles.joinButtonText}>Unjoin Match</Text>
-      </TouchableOpacity>
+      {courtDetails.has_reserved ? (
+        <TouchableOpacity
+          style={styles.joinButton}
+          onPress={handleUnjoinGame}
+        >
+          <Text style={styles.joinButtonText}>Unjoin Match</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.joinButton}
+          onPress={handleJoinGame}
+        >
+          <Text style={styles.joinButtonText}>Join Game</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

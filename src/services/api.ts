@@ -291,12 +291,13 @@ export const uploadProfilePicture = async (token: string, file: any) => {
   }
 };
 
-export const getCourtDetails = async (courtId: string): Promise<any> => {
+export const getCourtDetails = async (courtId: string, token: string): Promise<any> => {
   try {
     const response = await fetch(`${API_URL}/court-details/${courtId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
     });
     if (!response.ok) {
