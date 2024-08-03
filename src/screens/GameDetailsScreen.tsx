@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { getCourtDetails, makeReservation } from '../services/api';
+import { getCourtDetails, cancelReservation } from '../services/api';
 
 type RootStackParamList = {
   GameDetails: { courtId: number, token: string };
@@ -13,6 +13,8 @@ const GameDetailsScreen: React.FC = () => {
   const route = useRoute<GameDetailsScreenRouteProp>();
   const { courtId, token } = route.params;
   const [courtDetails, setCourtDetails] = useState<any | null>(null);
+
+  console.log('Received courtId:', courtId);  // Debug log
 
   useEffect(() => {
     if (courtId !== undefined) {
@@ -33,19 +35,23 @@ const GameDetailsScreen: React.FC = () => {
     }
   }, [courtId]);
 
-  const handleJoinGame = async () => {
+  const handleUnjoinMatch = async () => {
     try {
-      const response = await makeReservation(courtDetails.name, token);
-
-      if (response.message === 'Reservation successful') {
-        Alert.alert('Success', 'You have joined the game!');
-        setCourtDetails({ ...courtDetails, available_seats: response.remaining_seats });
+      const response = await cancelReservation(courtDetails.name, token);
+      if (response.message === 'Reservation deleted') {
+        Alert.alert('Unjoin Match', 'Successfully unjoined the match');
+        // Update court details locally to reflect the unjoined match
+        setCourtDetails((prevDetails: any) => ({
+          ...prevDetails,
+          available_seats: prevDetails.available_seats + 1,
+          players_joined: prevDetails.players_joined - 1,
+        }));
       } else {
-        Alert.alert('Error', response.message);
+        Alert.alert('Error', response.message || 'Failed to unjoin match');
       }
     } catch (error) {
-      console.error('Error joining game:', error);
-      Alert.alert('Error', 'Failed to join the game');
+      console.error('Error unjoining match:', error);
+      Alert.alert('Error', 'Unable to unjoin match');
     }
   };
 
@@ -70,9 +76,9 @@ const GameDetailsScreen: React.FC = () => {
       <Text>Players Joined: {courtDetails.players_joined}</Text>
       <TouchableOpacity
         style={styles.joinButton}
-        onPress={handleJoinGame}
+        onPress={handleUnjoinMatch}
       >
-        <Text style={styles.joinButtonText}>Join Game</Text>
+        <Text style={styles.joinButtonText}>Unjoin Match</Text>
       </TouchableOpacity>
     </View>
   );
