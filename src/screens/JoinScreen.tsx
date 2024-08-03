@@ -4,10 +4,17 @@ import Slider from '@react-native-community/slider';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Court, getCourts } from '../services/api';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 interface JoinScreenProps {
   token: string;
 }
+
+type RootStackParamList = {
+  Home: undefined;
+  Join: { token: string }; 
+  GameDetails: { courtId: number; token: string };
+};
 
 const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
   const [location, setLocation] = useState('');
@@ -21,6 +28,7 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     const fetchCourtsData = async () => {
@@ -50,7 +58,7 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
     if (dateRange.startDate && dateRange.endDate) {
       filtered = filtered.filter(court => {
         const courtDate = new Date(court.available_date);
-        return courtDate >= dateRange.startDate && courtDate <= dateRange.endDate;
+        return dateRange.startDate && dateRange.endDate && courtDate >= dateRange.startDate && courtDate <= dateRange.endDate;
       });
     }
 
@@ -75,6 +83,15 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
     return `${hours}:${minutes}`;
   };
 
+  const handleJoinCourt = (court: Court) => {
+    if (court.id) {
+      console.log('Joining court with ID:', court.id);  // Debug log
+      navigation.navigate('GameDetails', { courtId: court.id, token });
+    } else {
+      console.error('Court ID is undefined');
+    }
+  };
+
   const renderCourt = ({ item }: { item: Court }) => (
     <View style={styles.courtContainer}>
       {item.image ? <Image source={{ uri: item.image }} style={styles.courtImage} /> : <View style={styles.courtImagePlaceholder} />}
@@ -85,7 +102,7 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
         <Text>{item.price !== undefined ? `${item.price} USD` : 'Price not specified'}</Text>
         <Text>{item.available_date || 'Date not specified'}</Text>
         <Text>{item.available_time || 'Time not specified'}</Text>
-        <TouchableOpacity onPress={() => { /* handle join court logic */ }} style={styles.joinButton}>
+        <TouchableOpacity onPress={() => handleJoinCourt(item)} style={styles.joinButton}>
           <Text style={styles.joinButtonText}>Join</Text>
         </TouchableOpacity>
       </View>
