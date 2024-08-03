@@ -78,7 +78,7 @@ const PlayPointsStack = ({ token }: { token: string }) => (
   <Stack.Navigator initialRouteName="PlayPoints">
     <Stack.Screen 
       name="PlayPoints" 
-      options={{ headerTitle: 'PlayPoints' }}
+      options={{ headerShown: false }} 
     >
       {props => <PlayPointsScreen {...props} token={token} />}
     </Stack.Screen>
