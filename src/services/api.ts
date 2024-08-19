@@ -310,3 +310,85 @@ export const getCourtDetails = async (courtId: string, token: string): Promise<a
     throw error;
   }
 };
+
+
+export const getAvailableTimeSlots = async (courtId: number, date: string) => {
+  try {
+    const response = await fetch(`${API_URL}/court/${courtId}/available-times?date=${date}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseText = await response.text();  // Log the raw response
+    console.log('Raw response:', responseText);
+
+    const data = JSON.parse(responseText);  // Manually parse JSON
+    return data;
+  } catch (error) {
+    console.error('Error fetching available time slots:', error);
+    throw error;
+  }
+};
+
+// Function to create a game
+export const createGame = async (courtId: number, startTime: string, endTime: string, token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        court_id: courtId,
+        start_time: startTime,
+        end_time: endTime,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create game');
+    }
+    return data;
+  } catch (error) {
+    console.error('Error creating game:', error);
+    throw error;
+  }
+};
+
+// Function to fetch hosted games by the current user
+export const getHostedGames = async (token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/my-hosted-games`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching hosted games:', error);
+    throw error;
+  }
+};
+
+// Function to delete a hosted game by its ID
+export const deleteHostedGame = async (gameId: number, token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/games/${gameId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting hosted game:', error);
+    throw error;
+  }
+};
