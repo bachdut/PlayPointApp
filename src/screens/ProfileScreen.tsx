@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, StyleSheet } from 'react-native';
-import { fetchUserDetails, updateProfile } from '../services/api';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, StyleSheet, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import if using AsyncStorage
+import { fetchUserDetails, updateProfile, logoutUser } from '../services/api';
 import CartContext from '../context/CartContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
@@ -24,6 +26,7 @@ interface UserProfile {
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
+  const navigation = useNavigation();
   const { cartItems } = useContext(CartContext);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
     favoriteSports: '',
     skillLevel: '',
     sportRule: '',
-    profilePicture: '', // Added profilePicture
+    profilePicture: '', 
   });
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
@@ -60,11 +63,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
 
   const handleSave = async () => {
     try {
-      // Ensure dateOfBirth is not null
       if (!profile.dateOfBirth || profile.dateOfBirth.toLowerCase() === 'null') {
         profile.dateOfBirth = '';
       }
-      console.log('handleSave triggered');
       await updateProfile(token, profile);
       setOriginalProfile(profile);
       setIsEditing(false);
@@ -112,6 +113,27 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
     hideDatePicker();
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutUser(token);
+
+      // Clear the stored token
+      await AsyncStorage.removeItem('userToken'); // If using AsyncStorage
+      // await SecureStore.deleteItemAsync('userToken'); // If using SecureStore
+
+      Alert.alert('Success', 'Logged out successfully');
+      
+      // Reset navigation to the login screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      Alert.alert('Error', 'Failed to logout.');
+    }
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color="#FF5733" />;
   }
@@ -121,14 +143,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
       <Text style={styles.title}>Profile</Text>
       <View style={styles.imageContainer}>
         {profile.profilePicture ? (
-            <Image source={{ uri: profile.profilePicture }} style={styles.profileImage} />
+          <Image source={{ uri: profile.profilePicture }} style={styles.profileImage} />
         ) : (
-            <Text style={styles.imagePlaceholder}>150 x 150</Text>
+          <Text style={styles.imagePlaceholder}>150 x 150</Text>
         )}
         {isEditing && (
-            <TouchableOpacity onPress={handleImagePick}>
+          <TouchableOpacity onPress={handleImagePick}>
             <Text style={styles.addImageText}>ADD IMAGE</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -166,9 +188,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={() => setIsEditing(true)}>
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleLogout}>
+            <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </ScrollView>
   );
@@ -184,7 +211,6 @@ const ProfileField = ({ label, value, editable, onChangeText }) => (
     )}
   </View>
 );
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -222,7 +248,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 8,
+    marginVertical: 8
   },
   fieldContainer: {
     flexDirection: 'row',
@@ -257,10 +283,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
+    flex: 1,
+    marginHorizontal: 8,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
+    textAlign: 'center',
   },
   editButton: {
     backgroundColor: '#FF5733',
@@ -274,6 +303,21 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: 'white',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  logoutButton: {
+    backgroundColor: '#FF5733',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    alignSelf: 'center',
+    marginTop: 16,
+    marginBottom: 32,
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
