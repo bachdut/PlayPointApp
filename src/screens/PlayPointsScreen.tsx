@@ -13,7 +13,7 @@ const PlayPointsScreen: React.FC<Props> = ({ token, navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>PlayPoints</Text>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Host')}>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Host', { token })}>
         <Text style={styles.buttonText}>Host</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Join', { token })}>

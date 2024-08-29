@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-import Slider from '@react-native-community/slider';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Court, getCourts } from '../services/api';
+import { View, Text, TextInput, Button, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { getOpenGames } from '../services/api';
+import Slider from '@react-native-community/slider';
 
 interface JoinScreenProps {
   token: string;
@@ -20,89 +18,56 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<{ startDate: Date | null, endDate: Date | null }>({ startDate: null, endDate: null });
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [endTime, setEndTime] = useState<Date | null>(null);
-  const [courts, setCourts] = useState<Court[]>([]);
-  const [filteredCourts, setFilteredCourts] = useState<Court[]>(courts);
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [level, setLevel] = useState<string | null>(null);
+  const [games, setGames] = useState([]);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   useEffect(() => {
-    const fetchCourtsData = async () => {
-      try {
-        const courtsData = await getCourts();
-        setCourts(courtsData);
-        setFilteredCourts(courtsData);
-      } catch (error) {
-        console.error('Error fetching courts:', error);
-      }
-    };
-
-    fetchCourtsData();
+    fetchGames();
   }, []);
 
-  const filterCourts = () => {
-    let filtered = courts;
-
-    if (location) {
-      filtered = filtered.filter(court => court.location.toLowerCase().includes(location.toLowerCase()));
+  const fetchGames = async () => {
+    try {
+      const data = await getOpenGames(token, location, formatDate(dateRange.startDate), formatDate(dateRange.endDate), price?.toString(), level);
+      setGames(data.games);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load open games');
     }
-
-    if (price !== null) {
-      filtered = filtered.filter(court => court.price <= price);
-    }
-
-    if (dateRange.startDate && dateRange.endDate) {
-      filtered = filtered.filter(court => {
-        const courtDate = new Date(court.available_date);
-        return dateRange.startDate && dateRange.endDate && courtDate >= dateRange.startDate && courtDate <= dateRange.endDate;
-      });
-    }
-
-    if (startTime && endTime) {
-      const startTimeString = formatTime(startTime);
-      const endTimeString = formatTime(endTime);
-      filtered = filtered.filter(court => {
-        const [courtStartTime, courtEndTime] = court.available_time.split(' - ');
-        return (courtStartTime >= startTimeString && courtStartTime < endTimeString) || 
-               (courtEndTime > startTimeString && courtEndTime <= endTimeString) ||
-               (courtStartTime <= startTimeString && courtEndTime >= endTimeString);
-      });
-    }
-
-    setFilteredCourts(filtered);
   };
 
-  const formatTime = (time: Date | null) => {
-    if (!time) return '';
-    const hours = time.getHours().toString().padStart(2, '0');
-    const minutes = time.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  const handleJoinCourt = (court: Court) => {
-    if (court.id) {
-      console.log('Joining court with ID:', court.id);  // Debug log
-      navigation.navigate('GameDetails', { courtId: court.id, token });
+  const handleFilter = () => {
+    fetchGames();
+  };
+
+  const handleJoinGame = (game: any) => {
+    console.log('Attempting to join game:', game);  // Log the game object to see what is being passed
+    if (game.id) {
+        console.log('Navigating to GameDetails with gameId:', game.id);
+        navigation.navigate('GameDetails', { gameId: game.id, token });
     } else {
-      console.error('Court ID is undefined');
+        console.error('Invalid game or court ID:', game);
+        Alert.alert('Error', 'Invalid game or court ID');
     }
   };
 
-  const renderCourt = ({ item }: { item: Court }) => (
+  const renderGame = ({ item }: { item: any }) => (
     <View style={styles.courtContainer}>
       {item.image ? <Image source={{ uri: item.image }} style={styles.courtImage} /> : <View style={styles.courtImagePlaceholder} />}
       <View style={styles.courtDetails}>
-        <Text style={styles.courtName}>{item.name || 'Unnamed Court'}</Text>
+        <Text style={styles.courtName}>{item.court_name || 'Unnamed Court'}</Text>
         <Text>{item.location || 'Unknown Location'}</Text>
-        <Text>{item.available_seats !== undefined ? `${item.available_seats} seats available` : 'Seats not specified'}</Text>
+        <Text>{item.players_joined !== undefined ? `${item.players_joined} players joined` : 'Players not specified'}</Text>
         <Text>{item.price !== undefined ? `${item.price} USD` : 'Price not specified'}</Text>
-        <Text>{item.available_date || 'Date not specified'}</Text>
-        <Text>{item.available_time || 'Time not specified'}</Text>
-        <TouchableOpacity onPress={() => handleJoinCourt(item)} style={styles.joinButton}>
+        <Text>{`${item.start_time} - ${item.end_time}`}</Text>
+        <TouchableOpacity onPress={() => handleJoinGame(item)} style={styles.joinButton}>
           <Text style={styles.joinButtonText}>Join</Text>
         </TouchableOpacity>
       </View>
@@ -111,7 +76,7 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filter Courts</Text>
+      <Text style={styles.title}>Filter Games</Text>
 
       <TextInput
         style={styles.input}
@@ -130,103 +95,19 @@ const JoinScreen: React.FC<JoinScreenProps> = ({ token }) => {
         onValueChange={setPrice}
       />
 
-      <View style={styles.dateTimeContainer}>
-        <TouchableOpacity onPress={() => setShowStartDatePicker(true)} style={styles.dateTimeInputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Start Date"
-            value={dateRange.startDate ? dateRange.startDate.toDateString() : ''}
-            editable={false}
-            pointerEvents="none" // This will make sure the touchable area covers the input
-          />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setShowEndDatePicker(true)} style={styles.dateTimeInputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="End Date"
-            value={dateRange.endDate ? dateRange.endDate.toDateString() : ''}
-            editable={false}
-            pointerEvents="none" // This will make sure the touchable area covers the input
-          />
-        </TouchableOpacity>
-      </View>
-
-      {showStartDatePicker && (
-        <DateTimePicker
-          value={dateRange.startDate || new Date()}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowStartDatePicker(false);
-            if (date) {
-              setDateRange({ ...dateRange, startDate: date });
-            }
-          }}
-        />
-      )}
-
-      {showEndDatePicker && (
-        <DateTimePicker
-          value={dateRange.endDate || new Date()}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowEndDatePicker(false);
-            if (date) {
-              setDateRange({ ...dateRange, endDate: date });
-            }
-          }}
-        />
-      )}
-
-      <View style={styles.dateTimeContainer}>
-        <TouchableOpacity onPress={() => setShowStartTimePicker(true)} style={styles.dateTimeInputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Start Time"
-            value={startTime ? formatTime(startTime) : ''}
-            editable={false}
-            pointerEvents="none" // This will make sure the touchable area covers the input
-          />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setShowEndTimePicker(true)} style={styles.dateTimeInputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="End Time"
-            value={endTime ? formatTime(endTime) : ''}
-            editable={false}
-            pointerEvents="none" // This will make sure the touchable area covers the input
-          />
-        </TouchableOpacity>
-      </View>
-
-      <DateTimePickerModal
-        isVisible={showStartTimePicker}
-        mode="time"
-        onConfirm={(time) => {
-          setStartTime(time);
-          setShowStartTimePicker(false);
-        }}
-        onCancel={() => setShowStartTimePicker(false)}
+      <TextInput
+        style={styles.input}
+        placeholder="Level"
+        value={level || ''}
+        onChangeText={setLevel}
       />
 
-      <DateTimePickerModal
-        isVisible={showEndTimePicker}
-        mode="time"
-        onConfirm={(time) => {
-          setEndTime(time);
-          setShowEndTimePicker(false);
-        }}
-        onCancel={() => setShowEndTimePicker(false)}
-      />
+      <Button title="Filter" onPress={handleFilter} />
 
-      <Button title="Filter" onPress={filterCourts} />
-
-      <Text style={styles.sectionTitle}>Courts</Text>
       <FlatList
-        data={filteredCourts}
-        keyExtractor={(item) => item.name}
-        renderItem={renderCourt}
+        data={games}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderGame}
       />
     </View>
   );
@@ -249,11 +130,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 4,
     marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 8,
   },
   courtContainer: {
     flexDirection: 'row',
@@ -283,14 +159,6 @@ const styles = StyleSheet.create({
   courtName: {
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  dateTimeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  dateTimeInputContainer: {
-    flex: 1,
-    marginHorizontal: 8,
   },
   joinButton: {
     backgroundColor: '#FF5733',

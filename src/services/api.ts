@@ -58,6 +58,23 @@ export const loginUser = async (email: string, password: string) => {
   }
 };
 
+export const logoutUser = async (token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/logout`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error logging out:', error);
+    throw error;
+  }
+};
+
 export const getCourts = async () => {
   try {
     const response = await fetch(`${API_URL}/courts`, {
@@ -74,16 +91,16 @@ export const getCourts = async () => {
   }
 };
 
-export const makeReservation = async (courtName: string, token: string) => {
+export const makeReservation = async (gameId: number, token: string) => {
   try {
-    console.log('Making reservation for court:', courtName); // Debug log
+    console.log('Making reservation for game ID:', gameId); // Debug log
     const response = await fetch(`${API_URL}/reserve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ court_name: courtName }),
+      body: JSON.stringify({ game_id: gameId }), // Ensure we're sending game_id
     });
     const data = await response.json();
     console.log('Reservation response data:', data); // Debug log
@@ -94,16 +111,16 @@ export const makeReservation = async (courtName: string, token: string) => {
   }
 };
 
-export const cancelReservation = async (courtName: string, token: string) => {
+export const cancelReservation = async (gameId: number, token: string) => {
   try {
-    console.log('Cancelling reservation for court:', courtName); // Debug log
+    console.log('Cancelling reservation for game ID:', gameId); // Debug log
     const response = await fetch(`${API_URL}/delete-reservation`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ court_name: courtName }),
+      body: JSON.stringify({ game_id: gameId }), // Use game_id instead of court_name
     });
     const data = await response.json();
     console.log('Cancel reservation response data:', data); // Debug log
@@ -307,6 +324,137 @@ export const getCourtDetails = async (courtId: string, token: string): Promise<a
     return data;
   } catch (error) {
     console.error('Error fetching court details:', error);
+    throw error;
+  }
+};
+
+
+export const getAvailableTimeSlots = async (courtId: number, date: string) => {
+  try {
+    const response = await fetch(`${API_URL}/court/${courtId}/available-times?date=${date}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseText = await response.text();  // Log the raw response
+    console.log('Raw response:', responseText);
+
+    const data = JSON.parse(responseText);  // Manually parse JSON
+    return data;
+  } catch (error) {
+    console.error('Error fetching available time slots:', error);
+    throw error;
+  }
+};
+
+// Function to create a game
+export const createGame = async (courtId: number, startTime: string, endTime: string, token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/games`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        court_id: courtId,
+        start_time: startTime,
+        end_time: endTime,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create game');
+    }
+    return data;
+  } catch (error) {
+    console.error('Error creating game:', error);
+    throw error;
+  }
+};
+
+// Function to fetch hosted games by the current user
+export const getHostedGames = async (token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/my-hosted-games`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching hosted games:', error);
+    throw error;
+  }
+};
+
+// Function to delete a hosted game by its ID
+export const deleteHostedGame = async (gameId: number, token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/games/${gameId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting hosted game:', error);
+    throw error;
+  }
+};
+
+export const getOpenGames = async (
+  token: string,
+  location?: string,
+  start_date?: string,
+  end_date?: string,
+  price?: string,
+  level_of_players?: string
+) => {
+  try {
+    const params = new URLSearchParams();
+    if (location) params.append('location', location);
+    if (start_date) params.append('start_date', start_date);
+    if (end_date) params.append('end_date', end_date);
+    if (price) params.append('price', price);
+    if (level_of_players) params.append('level_of_players', level_of_players);
+
+    const response = await fetch(`${API_URL}/open-games?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching open games:', error);
+    throw error;
+  }
+};
+
+export const getGameDetails = async (gameId: string, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/court-details/${gameId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching game details:', error);
     throw error;
   }
 };
