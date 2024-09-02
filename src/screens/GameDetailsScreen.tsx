@@ -13,57 +13,60 @@ const GameDetailsScreen: React.FC = () => {
   const route = useRoute<GameDetailsScreenRouteProp>();
   const { gameId, token } = route.params;
   const [gameDetails, setGameDetails] = useState<any | null>(null);
+  const [isUserJoined, setIsUserJoined] = useState(false);
 
   useEffect(() => {
-    if (gameId !== undefined) {
-      const fetchGameDetails = async () => {
-        try {
-          const details = await getGameDetails(gameId.toString(), token);
-          setGameDetails(details);
-        } catch (error) {
-          console.error('Error fetching game details:', error);
-          Alert.alert('Error', 'Unable to fetch game details');
-        }
-      };
+    const fetchGameDetails = async () => {
+      try {
+        const details = await getGameDetails(gameId.toString(), token);
+        setGameDetails(details);
 
-      fetchGameDetails();
-    } else {
-      console.error('Error: gameId is undefined');
-      Alert.alert('Error', 'Invalid game ID');
-    }
+        // Check if the user has joined the game
+        if (details.has_reserved) {
+          setIsUserJoined(true);
+        }
+      } catch (error) {
+        console.error('Error fetching game details:', error);
+        Alert.alert('Error', 'Unable to fetch game details');
+      }
+    };
+
+    fetchGameDetails();
   }, [gameId]);
 
   const handleJoinGame = async () => {
     try {
-        console.log('Making reservation for game ID:', gameId); // Use gameId directly
-        const response = await makeReservation(gameId, token);  // Pass gameId directly
-        if (response.message === 'Reservation successful') {
-            Alert.alert('Success', 'You have successfully joined the game!');
-            setGameDetails({ ...gameDetails, has_reserved: true });
-        } else {
-            Alert.alert('Failed', response.message);
-        }
+      console.log('Making reservation for game ID:', gameId); // Debug log
+      const response = await makeReservation(gameId, token);  // Pass gameId directly
+      if (response.message === 'Reservation successful') {
+        Alert.alert('Success', 'You have successfully joined the game!');
+        setIsUserJoined(true);
+        setGameDetails({ ...gameDetails, players_joined: gameDetails.players_joined + 1 });
+      } else {
+        Alert.alert('Failed', response.message);
+      }
     } catch (error) {
-        console.error('Error joining game:', error);
-        Alert.alert('Error', 'Unable to join game');
+      console.error('Error joining game:', error);
+      Alert.alert('Error', 'Unable to join game');
     }
   };
 
   const handleUnjoinGame = async () => {
     try {
-        console.log('Cancelling reservation for game ID:', gameId); // Use gameId directly
-        const response = await cancelReservation(gameId, token);  // Pass gameId directly
-        if (response.message === 'Reservation deleted') {
-            Alert.alert('Success', 'You have successfully unjoined the game!');
-            setGameDetails({ ...gameDetails, has_reserved: false });
-        } else {
-            Alert.alert('Failed', response.message);
-        }
+      console.log('Cancelling reservation for game ID:', gameId); // Debug log
+      const response = await cancelReservation(gameId, token);  // Pass gameId directly
+      if (response.message === 'Reservation deleted') {
+        Alert.alert('Success', 'You have successfully unjoined the game!');
+        setIsUserJoined(false);
+        setGameDetails({ ...gameDetails, players_joined: gameDetails.players_joined - 1 });
+      } else {
+        Alert.alert('Failed', response.message);
+      }
     } catch (error) {
-        console.error('Error unjoining game:', error);
-        Alert.alert('Error', 'Unable to unjoin game');
+      console.error('Error unjoining game:', error);
+      Alert.alert('Error', 'Unable to unjoin game');
     }
-};
+  };
 
   if (!gameDetails) {
     return (
@@ -81,10 +84,10 @@ const GameDetailsScreen: React.FC = () => {
       <Text>Available Seats: {gameDetails.available_seats}</Text>
       <Text>Category: {gameDetails.category}</Text>
       <Text>Level: {gameDetails.level}</Text>
-      <Text>Date: {gameDetails.available_date}</Text>
-      <Text>Time: {gameDetails.available_time}</Text>
+      <Text>Date: {gameDetails.start_time.split(' ')[0]}</Text>
+      <Text>Time: {`${gameDetails.start_time.split(' ')[1]} - ${gameDetails.end_time.split(' ')[1]}`}</Text>
       <Text>Players Joined: {gameDetails.players_joined}</Text>
-      {gameDetails.has_reserved ? (
+      {isUserJoined ? (
         <TouchableOpacity
           style={styles.joinButton}
           onPress={handleUnjoinGame}

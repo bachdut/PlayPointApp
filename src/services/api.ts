@@ -7,8 +7,7 @@ export interface Court {
   location: string;
   available_seats: number;
   price: number;
-  available_date: string;
-  available_time: string;
+  time_slots: string;
   image: string;
   category: string;
   level: string;
@@ -75,7 +74,7 @@ export const logoutUser = async (token: string) => {
   }
 };
 
-export const getCourts = async () => {
+export const getCourts = async (): Promise<Court[]> => {
   try {
     const response = await fetch(`${API_URL}/courts`, {
       method: 'GET',
@@ -83,8 +82,11 @@ export const getCourts = async () => {
         'Content-Type': 'application/json',
       },
     });
-    const data = await response.json();
-    return data;
+    const courts: Court[] = await response.json();
+    courts.forEach(court => {
+      court.time_slots = JSON.parse(court.time_slots); // Parse the JSON-encoded time slots
+    });
+    return courts;
   } catch (error) {
     console.error('Error fetching courts:', error);
     throw error;
@@ -338,11 +340,14 @@ export const getAvailableTimeSlots = async (courtId: number, date: string) => {
       },
     });
 
-    const responseText = await response.text();  // Log the raw response
-    console.log('Raw response:', responseText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error fetching available time slots: ${errorText}`);
+    }
 
-    const data = JSON.parse(responseText);  // Manually parse JSON
-    return data;
+    const data = await response.json();
+    console.log('Fetched available time slots:', data); 
+    return data.available_slots;
   } catch (error) {
     console.error('Error fetching available time slots:', error);
     throw error;
@@ -442,7 +447,7 @@ export const getOpenGames = async (
 
 export const getGameDetails = async (gameId: string, token: string): Promise<any> => {
   try {
-    const response = await fetch(`${API_URL}/court-details/${gameId}`, {
+    const response = await fetch(`${API_URL}/game-details/${gameId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
