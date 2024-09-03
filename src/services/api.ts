@@ -463,3 +463,26 @@ export const getGameDetails = async (gameId: string, token: string): Promise<any
     throw error;
   }
 };
+
+// Add the shuffle Teams API function
+export const shuffleTeams = async (gameId: number, shuffleType: 'random' | 'level', token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/shuffle-game/${gameId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ shuffle_type: shuffleType }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error shuffling teams:', error);
+    throw error;
+  }
+};

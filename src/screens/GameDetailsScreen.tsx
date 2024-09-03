@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { getGameDetails, makeReservation, cancelReservation } from '../services/api';
+import { getGameDetails, makeReservation, cancelReservation, shuffleTeams } from '../services/api';
 
 type RootStackParamList = {
   GameDetails: { gameId: number; token: string };
@@ -14,6 +14,7 @@ const GameDetailsScreen: React.FC = () => {
   const { gameId, token } = route.params;
   const [gameDetails, setGameDetails] = useState<any | null>(null);
   const [isUserJoined, setIsUserJoined] = useState(false);
+  const [shuffleResults, setShuffleResults] = useState<{ team1: string[]; team2: string[] }>({ team1: [], team2: [] });
 
   useEffect(() => {
     const fetchGameDetails = async () => {
@@ -34,10 +35,24 @@ const GameDetailsScreen: React.FC = () => {
     fetchGameDetails();
   }, [gameId]);
 
+  const handleShuffle = async (shuffleType: 'random' | 'level') => {
+    try {
+      const response = await shuffleTeams(gameId, shuffleType, token);
+      if (response) {
+        setShuffleResults(response);
+        Alert.alert('Success', `${shuffleType.charAt(0).toUpperCase() + shuffleType.slice(1)} shuffle completed`);
+      } else {
+        Alert.alert('Failed', 'Shuffle failed');
+      }
+    } catch (error) {
+      console.error('Error shuffling teams:', error);
+      Alert.alert('Error', 'Unable to shuffle teams');
+    }
+  };
+
   const handleJoinGame = async () => {
     try {
-      console.log('Making reservation for game ID:', gameId); // Debug log
-      const response = await makeReservation(gameId, token);  // Pass gameId directly
+      const response = await makeReservation(gameId, token);
       if (response.message === 'Reservation successful') {
         Alert.alert('Success', 'You have successfully joined the game!');
         setIsUserJoined(true);
@@ -53,8 +68,7 @@ const GameDetailsScreen: React.FC = () => {
 
   const handleUnjoinGame = async () => {
     try {
-      console.log('Cancelling reservation for game ID:', gameId); // Debug log
-      const response = await cancelReservation(gameId, token);  // Pass gameId directly
+      const response = await cancelReservation(gameId, token);
       if (response.message === 'Reservation deleted') {
         Alert.alert('Success', 'You have successfully unjoined the game!');
         setIsUserJoined(false);
@@ -102,6 +116,32 @@ const GameDetailsScreen: React.FC = () => {
           <Text style={styles.joinButtonText}>Join Game</Text>
         </TouchableOpacity>
       )}
+      <View style={styles.shuffleButtonsContainer}>
+        <TouchableOpacity
+          style={styles.shuffleButton}
+          onPress={() => handleShuffle('random')}
+        >
+          <Text style={styles.shuffleButtonText}>Random Shuffle</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.shuffleButton}
+          onPress={() => handleShuffle('level')}
+        >
+          <Text style={styles.shuffleButtonText}>Level-based Shuffle</Text>
+        </TouchableOpacity>
+      </View>
+      {shuffleResults.team1.length > 0 && (
+        <View style={styles.resultsContainer}>
+          <Text style={styles.resultsTitle}>Team 1:</Text>
+          {shuffleResults.team1.map((player, index) => (
+            <Text key={index}>{player}</Text>
+          ))}
+          <Text style={styles.resultsTitle}>Team 2:</Text>
+          {shuffleResults.team2.map((player, index) => (
+            <Text key={index}>{player}</Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -128,6 +168,29 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     fontSize: 16,
+  },
+  shuffleButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+  },
+  shuffleButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+  },
+  shuffleButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  resultsContainer: {
+    marginTop: 20,
+  },
+  resultsTitle: {
+    fontWeight: 'bold',
+    marginTop: 10,
   },
 });
 
