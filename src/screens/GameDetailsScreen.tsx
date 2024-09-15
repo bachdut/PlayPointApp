@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useRoute, useIsFocused } from '@react-navigation/native';
 import { getGameDetails, makeReservation, cancelReservation, shuffleTeams, fetchChatMessages, sendMessage } from '../services/api';
 
 type RootStackParamList = {
@@ -26,6 +26,7 @@ const GameDetailsScreen: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const flatListRef = useRef<FlatList<Message>>(null);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     const fetchGameDetails = async () => {
@@ -40,12 +41,26 @@ const GameDetailsScreen: React.FC = () => {
     };
 
     fetchGameDetails();
-    loadMessages();
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
   }, [gameId]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isFocused && isUserJoined) {
+      loadMessages();
+      interval = setInterval(loadMessages, 5000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isFocused, isUserJoined, gameId]);
+
   const loadMessages = async () => {
+    if (!isUserJoined) return;
+
     try {
       const fetchedMessages = await fetchChatMessages(gameId, token);
       setMessages(fetchedMessages);
@@ -76,6 +91,7 @@ const GameDetailsScreen: React.FC = () => {
         Alert.alert('Success', 'You have successfully joined the game!');
         setIsUserJoined(true);
         setGameDetails({ ...gameDetails, players_joined: gameDetails.players_joined + 1 });
+        loadMessages(); // Load messages immediately after joining
       } else {
         Alert.alert('Failed', response.message);
       }
@@ -92,6 +108,7 @@ const GameDetailsScreen: React.FC = () => {
         Alert.alert('Success', 'You have successfully unjoined the game!');
         setIsUserJoined(false);
         setGameDetails({ ...gameDetails, players_joined: gameDetails.players_joined - 1 });
+        setMessages([]); // Clear messages when unjoining
       } else {
         Alert.alert('Failed', response.message);
       }
@@ -102,7 +119,7 @@ const GameDetailsScreen: React.FC = () => {
   };
 
   const handleSendMessage = async () => {
-    if (inputMessage.trim()) {
+    if (inputMessage.trim() && isUserJoined) {
       try {
         await sendMessage(gameId, inputMessage.trim(), token);
         setInputMessage('');
@@ -192,33 +209,37 @@ const GameDetailsScreen: React.FC = () => {
               )}
             </View>
             
-            <View style={styles.chatContainer}>
-              <Text style={styles.chatTitle}>Game Chat</Text>
-              <FlatList
-                ref={flatListRef}
-                data={messages}
-                renderItem={renderMessage}
-                keyExtractor={(item) => item.message_id.toString()}
-                style={styles.chatList}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-              />
-            </View>
+            {isUserJoined && (
+              <View style={styles.chatContainer}>
+                <Text style={styles.chatTitle}>Game Chat</Text>
+                <FlatList
+                  ref={flatListRef}
+                  data={messages}
+                  renderItem={renderMessage}
+                  keyExtractor={(item) => item.message_id.toString()}
+                  style={styles.chatList}
+                  onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                />
+              </View>
+            )}
           </>
         )}
         keyExtractor={() => 'details'}
       />
       
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputMessage}
-          onChangeText={setInputMessage}
-          placeholder="Type a message..."
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
-      </View>
+      {isUserJoined && (
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={inputMessage}
+            onChangeText={setInputMessage}
+            placeholder="Type a message..."
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
