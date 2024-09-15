@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { RouteProp, useRoute, useIsFocused } from '@react-navigation/native';
 import { getGameDetails, makeReservation, cancelReservation, shuffleTeams, fetchChatMessages, sendMessage } from '../services/api';
 
@@ -64,6 +64,7 @@ const GameDetailsScreen: React.FC = () => {
     try {
       const fetchedMessages = await fetchChatMessages(gameId, token);
       setMessages(fetchedMessages);
+      flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error) {
       console.error('Error loading messages:', error);
     }
@@ -91,7 +92,7 @@ const GameDetailsScreen: React.FC = () => {
         Alert.alert('Success', 'You have successfully joined the game!');
         setIsUserJoined(true);
         setGameDetails({ ...gameDetails, players_joined: gameDetails.players_joined + 1 });
-        loadMessages(); // Load messages immediately after joining
+        loadMessages();
       } else {
         Alert.alert('Failed', response.message);
       }
@@ -108,7 +109,7 @@ const GameDetailsScreen: React.FC = () => {
         Alert.alert('Success', 'You have successfully unjoined the game!');
         setIsUserJoined(false);
         setGameDetails({ ...gameDetails, players_joined: gameDetails.players_joined - 1 });
-        setMessages([]); // Clear messages when unjoining
+        setMessages([]);
       } else {
         Alert.alert('Failed', response.message);
       }
@@ -161,71 +162,65 @@ const GameDetailsScreen: React.FC = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
-      <FlatList
-        data={[{ key: 'details' }]}
-        renderItem={() => (
-          <>
-            <View style={styles.detailsContainer}>
-              <Text style={styles.title}>{gameDetails.name}</Text>
-              <Text>Location: {gameDetails.location}</Text>
-              <Text>Price: ${gameDetails.price}</Text>
-              <Text>Available Seats: {gameDetails.available_seats}</Text>
-              <Text>Category: {gameDetails.category}</Text>
-              <Text>Level: {gameDetails.level}</Text>
-              <Text>Date: {gameDetails.start_time.split(' ')[0]}</Text>
-              <Text>Time: {`${gameDetails.start_time.split(' ')[1]} - ${gameDetails.end_time.split(' ')[1]}`}</Text>
-              <Text>Players Joined: {gameDetails.players_joined}</Text>
-              
-              {isUserJoined ? (
-                <TouchableOpacity style={styles.joinButton} onPress={handleUnjoinGame}>
-                  <Text style={styles.joinButtonText}>Unjoin Game</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.joinButton} onPress={handleJoinGame}>
-                  <Text style={styles.joinButtonText}>Join Game</Text>
-                </TouchableOpacity>
-              )}
-              
-              <View style={styles.shuffleButtonsContainer}>
-                <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('random')}>
-                  <Text style={styles.shuffleButtonText}>Random Shuffle</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('level')}>
-                  <Text style={styles.shuffleButtonText}>Level-based Shuffle</Text>
-                </TouchableOpacity>
-              </View>
-              
-              {shuffleResults.team1.length > 0 && (
-                <View style={styles.resultsContainer}>
-                  <Text style={styles.resultsTitle}>Team 1:</Text>
-                  {shuffleResults.team1.map((player, index) => (
-                    <Text key={index}>{player}</Text>
-                  ))}
-                  <Text style={styles.resultsTitle}>Team 2:</Text>
-                  {shuffleResults.team2.map((player, index) => (
-                    <Text key={index}>{player}</Text>
-                  ))}
-                </View>
-              )}
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.detailsContainer}>
+          <Text style={styles.title}>{gameDetails.name}</Text>
+          <Text>Location: {gameDetails.location}</Text>
+          <Text>Price: ${gameDetails.price}</Text>
+          <Text>Available Seats: {gameDetails.available_seats}</Text>
+          <Text>Category: {gameDetails.category}</Text>
+          <Text>Level: {gameDetails.level}</Text>
+          <Text>Date: {gameDetails.start_time.split(' ')[0]}</Text>
+          <Text>Time: {`${gameDetails.start_time.split(' ')[1]} - ${gameDetails.end_time.split(' ')[1]}`}</Text>
+          <Text>Players Joined: {gameDetails.players_joined}</Text>
+          
+          {isUserJoined ? (
+            <TouchableOpacity style={styles.joinButton} onPress={handleUnjoinGame}>
+              <Text style={styles.joinButtonText}>Unjoin Game</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.joinButton} onPress={handleJoinGame}>
+              <Text style={styles.joinButtonText}>Join Game</Text>
+            </TouchableOpacity>
+          )}
+          
+          <View style={styles.shuffleButtonsContainer}>
+            <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('random')}>
+              <Text style={styles.shuffleButtonText}>Random Shuffle</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('level')}>
+              <Text style={styles.shuffleButtonText}>Level-based Shuffle</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {shuffleResults.team1.length > 0 && (
+            <View style={styles.resultsContainer}>
+              <Text style={styles.resultsTitle}>Team 1:</Text>
+              {shuffleResults.team1.map((player, index) => (
+                <Text key={index}>{player}</Text>
+              ))}
+              <Text style={styles.resultsTitle}>Team 2:</Text>
+              {shuffleResults.team2.map((player, index) => (
+                <Text key={index}>{player}</Text>
+              ))}
             </View>
-            
-            {isUserJoined && (
-              <View style={styles.chatContainer}>
-                <Text style={styles.chatTitle}>Game Chat</Text>
-                <FlatList
-                  ref={flatListRef}
-                  data={messages}
-                  renderItem={renderMessage}
-                  keyExtractor={(item) => item.message_id.toString()}
-                  style={styles.chatList}
-                  onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                />
-              </View>
-            )}
-          </>
+          )}
+        </View>
+        
+        {isUserJoined && (
+          <View style={styles.chatContainer}>
+            <Text style={styles.chatTitle}>Game Chat</Text>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessage}
+              keyExtractor={(item) => item.message_id.toString()}
+              style={styles.chatList}
+              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            />
+          </View>
         )}
-        keyExtractor={() => 'details'}
-      />
+      </ScrollView>
       
       {isUserJoined && (
         <View style={styles.inputContainer}>
@@ -248,6 +243,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
   },
   detailsContainer: {
     padding: 16,
@@ -297,6 +295,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#ccc',
     padding: 16,
+    marginTop: 20,
   },
   chatList: {
     flex: 1,
