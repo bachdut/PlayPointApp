@@ -1,10 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
-import { loginUser } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  Alert,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { loginUser } from '../services/api';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 type LoginScreenRouteProp = RouteProp<RootStackParamList, 'Login'>;
@@ -15,9 +29,12 @@ type Props = {
   onLogin: (token: string) => void;
 };
 
+const { width, height } = Dimensions.get('window');
+
 const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -26,21 +43,18 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
   }, []);
 
   const handleLogin = async () => {
-    console.log('Email:', email);
-    console.log('Password:', password);
     try {
       const response = await loginUser(email, password);
-      console.log('Response:', response);
       if (response.access_token) {
-        onLogin(response.access_token); // Call onLogin with the token
-        Alert.alert('Login successful');
-        navigation.replace('Main'); // Ensure 'Main' is defined in RootStackParamList
+        onLogin(response.access_token);
+        Alert.alert('Success', 'Login successful');
+        navigation.replace('Main');
       } else {
-        Alert.alert('Login failed', 'Invalid credentials');
+        Alert.alert('Login Failed', 'Invalid credentials');
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Login failed', 'An error occurred');
+      Alert.alert('Error', 'An error occurred during login');
     }
   };
 
@@ -49,7 +63,6 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo.idToken;
-      // Send ID token to your backend for verification
       const response = await fetch('http://127.0.0.1:8888/login/google', {
         method: 'POST',
         headers: {
@@ -59,121 +72,199 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLogin }) => {
       });
       const data = await response.json();
       if (response.ok) {
-        onLogin(data.access_token); // Call onLogin with the token from the backend
-        Alert.alert('Google Sign-In successful');
-        navigation.replace('Main'); // Ensure 'Main' is defined in RootStackParamList
+        onLogin(data.access_token);
+        Alert.alert('Success', 'Google Sign-In successful');
+        navigation.replace('Main');
       } else {
-        Alert.alert('Google Sign-In failed', data.message);
+        Alert.alert('Google Sign-In Failed', data.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert('Sign in cancelled');
+        Alert.alert('Cancelled', 'Google Sign-In was cancelled');
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        Alert.alert('Sign in in progress');
+        Alert.alert('In Progress', 'Google Sign-In operation is in progress already');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Play services not available');
+        Alert.alert('Error', 'Play services not available or outdated');
       } else {
-        Alert.alert('Something went wrong');
+        Alert.alert('Error', 'An unknown error occurred');
       }
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>PlayPoint</Text>
-      <Text style={styles.title}>LOGIN</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')}>
-        <Text style={styles.forgotPassword}>Forgot password?</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>LOGIN</Text>
-      </TouchableOpacity>
-      <Text style={styles.orText}>or sign up using</Text>
-      <View style={styles.socialButtons}>
-        <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
-          <Image source={require('../assets/google.png')} style={styles.socialIcon} />
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../assets/playpointLogo.jpg')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>PlayPoint</Text>
+        </View>
+        
+        <View style={styles.inputContainer}>
+          <Icon name="mail-outline" size={24} color="#1E90FF" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+        
+        <View style={styles.inputContainer}>
+          <Icon name="lock-closed-outline" size={24} color="#1E90FF" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#999"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!isPasswordVisible}
+          />
+          <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+            <Icon
+              name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              size={24}
+              color="#1E90FF"
+            />
+          </TouchableOpacity>
+        </View>
+        
+        <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')}>
+          <Text style={styles.forgotPassword}>Forgot password?</Text>
         </TouchableOpacity>
-      </View>
-      <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-        <Text style={styles.signUp}>SIGN UP</Text>
-      </TouchableOpacity>
-    </View>
+        
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>LOGIN</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.orText}>or sign in with</Text>
+        
+        <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
+          <Image source={require('../assets/google.png')} style={styles.googleIcon} />
+          <Text style={styles.googleButtonText}>Sign in with Google</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.signupContainer}>
+          <Text style={styles.signupText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+            <Text style={styles.signupLink}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F5', // Cool Gray background
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
+    padding: 20,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   logo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
+    width: 120,
+    height: 120,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#212121', // Charcoal text
+    marginTop: 10,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingLeft: 8,
+    flex: 1,
+    height: 50,
+    color: '#212121', // Charcoal text
+    fontSize: 16,
   },
   forgotPassword: {
-    color: 'gray',
+    color: '#1E90FF', // Electric Blue
     textAlign: 'right',
-    marginBottom: 12,
+    marginBottom: 20,
   },
   loginButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 12,
+    backgroundColor: '#FF6F00', // Vibrant Orange
+    paddingVertical: 15,
     borderRadius: 25,
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 20,
   },
   loginButtonText: {
-    color: 'white',
-    textAlign: 'center',
+    color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: 'bold',
   },
   orText: {
+    color: '#212121', // Charcoal text
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
   },
-  socialButtons: {
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#1E90FF', // Electric Blue
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    color: '#212121', // Charcoal text
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginTop: 20,
   },
-  socialButton: {
-    marginHorizontal: 10,
+  signupText: {
+    color: '#212121', // Charcoal text
   },
-  socialIcon: {
-    width: 30,
-    height: 30,
-  },
-  signUp: {
-    textAlign: 'center',
-    color: '#FF5733',
+  signupLink: {
+    color: '#1E90FF', // Electric Blue
+    fontWeight: 'bold',
   },
 });
 

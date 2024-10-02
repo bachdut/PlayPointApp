@@ -1,46 +1,47 @@
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, Alert } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView, StatusBar, Modal, FlatList } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { getAvailableTimeSlots, createGame } from '../services/api';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { Calendar } from 'react-native-calendars';
+import { RootStackParamList } from '../Navigation';
 
-type RouteParams = {
-  courtId: number;
-  token: string;
+type SelectTimeScreenRouteProp = RouteProp<RootStackParamList, 'SelectTime'>;
+type SelectTimeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SelectTime'>;
+
+type Props = {
+  route: SelectTimeScreenRouteProp;
+  navigation: SelectTimeScreenNavigationProp;
 };
 
-const SelectTimeScreen: React.FC = () => {
-  const [availableTimes, setAvailableTimes] = useState([]);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+const SelectTimeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [slotsFetched, setSlotsFetched] = useState(false);
-  const navigation = useNavigation();
-  const route = useRoute();
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [showTimeSlots, setShowTimeSlots] = useState(false);
+  const { courtId, token } = route.params;
 
-  const { courtId, token } = route.params as RouteParams;
-
-  const handleDateChange = (event: any, selectedDate: Date | undefined) => {
-    const currentDate = selectedDate || date;
-    setShowDatePicker(false);
-    setDate(currentDate);
-    setSlotsFetched(false); // Mark slots as not fetched yet
+  const handleDateSelect = (day: any) => {
+    setDate(new Date(day.timestamp));
+    setShowCalendar(false);
+    setAvailableSlots([]);
+    setSelectedSlot(null);
+    setShowTimeSlots(false);
   };
 
   const fetchAvailableTimes = async () => {
     try {
-      const formattedDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      const availableSlots = await getAvailableTimeSlots(courtId, formattedDate);
+      const formattedDate = date.toISOString().split('T')[0];
+      const slots = await getAvailableTimeSlots(courtId, formattedDate);
 
-      if (availableSlots && availableSlots.length > 0) {
-        setAvailableTimes(availableSlots);
-        setSelectedTime(availableSlots[0]);
+      if (slots && slots.length > 0) {
+        setAvailableSlots(slots);
+        setShowTimeSlots(true);
       } else {
         Alert.alert('No available slots', 'No available time slots for the selected date.');
       }
-
-      setSlotsFetched(true);
     } catch (error) {
       console.error('Error fetching time slots:', error);
       Alert.alert('Error', 'Failed to load available time slots');
@@ -48,16 +49,15 @@ const SelectTimeScreen: React.FC = () => {
   };
 
   const handleCreateGame = async () => {
-    if (!selectedTime) {
+    if (!selectedSlot) {
       Alert.alert('Error', 'Please select a time slot');
       return;
     }
 
-    const [start_time, end_time] = selectedTime.split('-').map(time => time.trim());
-
-    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    const formattedStartTime = `${localDate} ${start_time}`;
-    const formattedEndTime = `${localDate} ${end_time}`;
+    const [start_time, end_time] = selectedSlot.split('-').map(time => time.trim());
+    const formattedDate = date.toISOString().split('T')[0];
+    const formattedStartTime = `${formattedDate} ${start_time}`;
+    const formattedEndTime = `${formattedDate} ${end_time}`;
 
     try {
       const response = await createGame(courtId, formattedStartTime, formattedEndTime, token);
@@ -73,62 +73,188 @@ const SelectTimeScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Select a Date</Text>
-      <Button title="Pick a date" onPress={() => setShowDatePicker(true)} />
-      {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
-      <Text>{date.toDateString()}</Text>
-      <Button title="Next" onPress={fetchAvailableTimes} />
-      {slotsFetched && (
-        <>
-          <Text style={styles.title}>Select a Time Slot</Text>
-          {availableTimes.length > 0 ? (
-            <Picker
-              selectedValue={selectedTime}
-              onValueChange={(itemValue) => setSelectedTime(itemValue)}
-              style={styles.picker}
-            >
-              {availableTimes.map((slot, index) => (
-                <Picker.Item
-                  key={index}
-                  label={slot}
-                  value={slot}
-                />
-              ))}
-            </Picker>
-          ) : (
-            <Text>No available time slots</Text>
-          )}
-          <Button title="Create Game" onPress={handleCreateGame} />
-        </>
-      )}
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
+      <View style={styles.container}>
+        <Text style={styles.title}>Select a Date</Text>
+        <TouchableOpacity style={styles.dateButton} onPress={() => setShowCalendar(true)}>
+          <Icon name="calendar-outline" size={24} color="#1E90FF" style={styles.dateIcon} />
+          <Text style={styles.dateText}>
+            {date.toDateString()}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.nextButton} onPress={fetchAvailableTimes}>
+          <Text style={styles.nextButtonText}>Next</Text>
+          <Icon name="arrow-forward" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        {showTimeSlots && (
+          <View style={styles.slotsContainer}>
+            <Text style={styles.slotsTitle}>Select a Time Slot</Text>
+            <FlatList
+              data={availableSlots}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.slotItem,
+                    selectedSlot === item && styles.selectedSlot
+                  ]}
+                  onPress={() => setSelectedSlot(item)}
+                >
+                  <Text style={[
+                    styles.slotText,
+                    selectedSlot === item && styles.selectedSlotText
+                  ]}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item}
+            />
+          </View>
+        )}
+
+        {selectedSlot && (
+          <TouchableOpacity style={styles.createButton} onPress={handleCreateGame}>
+            <Text style={styles.createButtonText}>Create Game</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showCalendar}
+        onRequestClose={() => setShowCalendar(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalView}>
+            <Calendar
+              onDayPress={handleDateSelect}
+              markedDates={{
+                [date.toISOString().split('T')[0]]: {selected: true, selectedColor: '#1E90FF'},
+              }}
+              minDate={new Date().toISOString().split('T')[0]}
+            />
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: 20,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 30,
+    textAlign: 'center',
+    color: '#212121',
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  dateIcon: {
+    marginRight: 10,
+  },
+  dateText: {
+    fontSize: 18,
+    color: '#212121',
+  },
+  nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6F00',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginBottom: 20,
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  slotsContainer: {
+    marginTop: 20,
+  },
+  slotsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#212121',
+  },
+  slotItem: {
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  selectedSlot: {
+    backgroundColor: '#1E90FF',
+  },
+  slotText: {
+    fontSize: 16,
+    color: '#212121',
     textAlign: 'center',
   },
-  picker: {
-    marginBottom: 16,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#ccc',
+  selectedSlotText: {
+    color: '#FFFFFF',
+  },
+  createButton: {
+    backgroundColor: '#1E90FF',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalView: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
   },
 });
 

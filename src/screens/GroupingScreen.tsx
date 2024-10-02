@@ -1,30 +1,39 @@
-// MobileApp/App/src/screens/GroupingScreen.tsx
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert, RefreshControl, SafeAreaView } from 'react-native';
 import { getGroupProducts, joinGroupPurchase } from '../services/api';
-import * as Progress from 'react-native-progress';
 
 const GroupingScreen = () => {
   const [products, setProducts] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    try {
+      const productsData = await getGroupProducts();
+      setProducts(productsData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      Alert.alert('Error', 'Failed to fetch products. Please try again later.');
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const productsData = await getGroupProducts();
-        setProducts(productsData);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        Alert.alert('Error', 'Failed to fetch products. Please try again later.');
-      }
-    };
     fetchProducts();
   }, []);
 
-  const handleJoin = async (productId: string) => {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchProducts().then(() => setRefreshing(false));
+  }, []);
+
+  const handleJoin = async (productId) => {
     try {
       const response = await joinGroupPurchase(productId);
       if (response.success) {
         Alert.alert('Joined', 'You have successfully joined the group purchase!');
+        fetchProducts();
       } else {
         Alert.alert('Error', response.message);
       }
@@ -44,100 +53,154 @@ const GroupingScreen = () => {
         <View style={styles.productDetails}>
           <Text style={styles.productName}>{item.name}</Text>
           <Text style={styles.productDescription}>{item.description}</Text>
-          <Text style={styles.productPrice}>${item.price}</Text>
-          <Text style={styles.originalPrice}>${item.original_price}</Text>
-          <Text style={styles.discountRate}>{discount.toFixed(0)}% OFF</Text>
-          <Progress.Bar progress={progress} width={200} color={'#FF5733'} />
+          <View style={styles.priceContainer}>
+            <Text style={styles.productPrice}>${item.price}</Text>
+            <Text style={styles.originalPrice}>${item.original_price}</Text>
+            <Text style={styles.discountRate}>{discount.toFixed(0)}% OFF</Text>
+          </View>
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+          </View>
           <Text style={styles.participants}>
-            {item.current_participants}/{item.total_needed} ({(progress * 100).toFixed(0)}%)
+            {item.current_participants}/{item.total_needed} joined
           </Text>
           <TouchableOpacity style={styles.joinButton} onPress={() => handleJoin(item.id)}>
-            <Text style={styles.joinButtonText}>Join</Text>
+            <Text style={styles.joinButtonText}>Join Group</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.screenContainer}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Group Purchases</Text>
+      </View>
       <FlatList
         data={products}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={<Text style={styles.title}>Group Purchases</Text>}
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1E90FF']} />
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    backgroundColor: '#1E90FF',
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+  },
+  container: {
     padding: 16,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#F5F5F5',
     textAlign: 'center',
   },
   productContainer: {
-    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginBottom: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
   },
   productImage: {
-    width: 100,
-    height: 100,
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
   },
   productDetails: {
-    flex: 1,
     padding: 16,
   },
   productName: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#212121',
   },
   productDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#757575',
+    marginBottom: 8,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 8,
+    color: '#FF6F00',
+    marginRight: 8,
   },
   originalPrice: {
     fontSize: 14,
     textDecorationLine: 'line-through',
-    color: '#666',
+    color: '#9E9E9E',
+    marginRight: 8,
   },
   discountRate: {
     fontSize: 14,
-    color: '#FF5733',
+    color: '#32CD32',
+    fontWeight: 'bold',
+  },
+  progressContainer: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#32CD32',
   },
   participants: {
     fontSize: 14,
-    color: '#666',
+    color: '#757575',
+    marginBottom: 12,
   },
   joinButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 8,
+    backgroundColor: '#FF6F00',
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 25,
-    marginTop: 8,
+    alignItems: 'center',
   },
   joinButtonText: {
-    color: 'white',
-    textAlign: 'center',
+    color: '#F5F5F5',
+    fontWeight: 'bold',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

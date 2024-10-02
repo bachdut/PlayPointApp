@@ -1,14 +1,13 @@
-// MobileApp/App/src/screens/PPClubScreen.tsx
-import React, { useContext } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import CartContext from '../context/CartContext';
 import { getPPClubProducts } from '../services/api';
 
 const PPClubScreen = () => {
-  const [products, setProducts] = React.useState([]);
+  const [products, setProducts] = useState([]);
   const { addToCart } = useContext(CartContext);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchProducts = async () => {
       try {
         const productsData = await getPPClubProducts();
@@ -41,69 +40,85 @@ const PPClubScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>PP Club Products</Text>
+      </View>
       <FlatList
         data={products}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={<Text style={styles.title}>PP Club Products</Text>}
+        contentContainerStyle={styles.listContainer}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    backgroundColor: '#1E90FF',
     padding: 16,
+    paddingTop: 20,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#F5F5F5',
     textAlign: 'center',
   },
+  listContainer: {
+    padding: 16,
+  },
   productContainer: {
-    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginBottom: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
   },
   productImage: {
-    width: 100,
-    height: 100,
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
   },
   productDetails: {
-    flex: 1,
     padding: 16,
   },
   productName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 8,
   },
   productDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#757575',
+    marginBottom: 8,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginVertical: 8,
+    color: '#FF6F00',
+    marginBottom: 16,
   },
   addButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 8,
+    backgroundColor: '#FF6F00',
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 25,
+    alignItems: 'center',
   },
   addButtonText: {
-    color: 'white',
-    textAlign: 'center',
+    color: '#F5F5F5',
+    fontWeight: 'bold',
     fontSize: 16,
   },
 });
