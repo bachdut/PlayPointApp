@@ -1,101 +1,64 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import if using AsyncStorage
 import { fetchUserDetails, updateProfile, logoutUser } from '../services/api';
-import CartContext from '../context/CartContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 
-interface ProfileScreenProps {
-  token: string;
-}
-
-interface UserProfile {
-  username: string;
-  dateOfBirth: string;
-  gender: string;
-  healthDeclaration: boolean;
-  email: string;
-  phone: string;
-  address: string;
-  favoriteSports: string;
-  skillLevel: string;
-  sportRule: string;
-  profilePicture: string;
-}
-
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
+const ProfileScreen = ({ token }) => {
   const navigation = useNavigation();
-  const { cartItems } = useContext(CartContext);
+  const [profile, setProfile] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
-  const [profile, setProfile] = useState<UserProfile>({
-    username: '',
-    dateOfBirth: '',
-    gender: '',
-    healthDeclaration: false,
-    email: '',
-    phone: '',
-    address: '',
-    favoriteSports: '',
-    skillLevel: '',
-    sportRule: '',
-    profilePicture: '', 
-  });
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   useEffect(() => {
-    const loadUserDetails = async () => {
-      try {
-        const userDetails = await fetchUserDetails(token);
-        setProfile(userDetails);
-        setOriginalProfile(userDetails);
-        setLoading(false);
-      } catch (error) {
-        console.error('Failed to load user details:', error);
-        setLoading(false);
-      }
-    };
     loadUserDetails();
   }, [token]);
 
+  const loadUserDetails = async () => {
+    try {
+      const userDetails = await fetchUserDetails(token);
+      setProfile(userDetails);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load user details:', error);
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
-      if (!profile.dateOfBirth || profile.dateOfBirth.toLowerCase() === 'null') {
-        profile.dateOfBirth = '';
-      }
       await updateProfile(token, profile);
-      setOriginalProfile(profile);
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      // Optionally reload user details to confirm changes
+      loadUserDetails();
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Failed to update profile.');
     }
   };
 
   const handleDiscard = () => {
-    if (originalProfile) {
-      setProfile(originalProfile);
-    }
     setIsEditing(false);
+    loadUserDetails(); // Reload original details
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser(token);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleImagePick = () => {
-    if (!isEditing) {
-      return;
-    }
-
-    launchImageLibrary({}, (response: ImagePickerResponse) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.error) {
-        console.error('ImagePicker Error: ', response.error);
-      } else if (response.assets && response.assets.length > 0) {
-        const uri = response.assets[0].uri;
-        setProfile({ ...profile, profilePicture: uri });
+    launchImageLibrary({}, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        setProfile({ ...profile, profilePicture: response.assets[0].uri });
       }
     });
   };
@@ -108,216 +71,186 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ token }) => {
     setDatePickerVisibility(false);
   };
 
-  const handleConfirm = (date: Date) => {
+  const handleConfirm = (date) => {
     setProfile({ ...profile, dateOfBirth: date.toISOString().split('T')[0] });
     hideDatePicker();
   };
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser(token);
-
-      // Clear the stored token
-      await AsyncStorage.removeItem('userToken'); // If using AsyncStorage
-      // await SecureStore.deleteItemAsync('userToken'); // If using SecureStore
-
-      Alert.alert('Success', 'Logged out successfully');
-      
-      // Reset navigation to the login screen
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
-    } catch (error) {
-      console.error('Logout failed:', error);
-      Alert.alert('Error', 'Failed to logout.');
-    }
-  };
-
   if (loading) {
-    return <ActivityIndicator size="large" color="#FF5733" />;
+    return <Text>Loading...</Text>;
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
-      <View style={styles.imageContainer}>
-        {profile.profilePicture ? (
-          <Image source={{ uri: profile.profilePicture }} style={styles.profileImage} />
-        ) : (
-          <Text style={styles.imagePlaceholder}>150 x 150</Text>
-        )}
-        {isEditing && (
-          <TouchableOpacity onPress={handleImagePick}>
-            <Text style={styles.addImageText}>ADD IMAGE</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        <Text style={styles.title}>Profile</Text>
+        <View style={styles.imageContainer}>
+          {profile.profilePicture ? (
+            <Image source={{ uri: profile.profilePicture }} style={styles.profileImage} />
+          ) : (
+            <View style={styles.imagePlaceholder} />
+          )}
+          {isEditing && (
+            <TouchableOpacity onPress={handleImagePick}>
+              <Text style={styles.addImageText}>ADD IMAGE</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-      <Text style={styles.sectionTitle}>Basic Info</Text>
-      <ProfileField label="Username" value={profile.username} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, username: text })} />
-      <TouchableOpacity onPress={showDatePicker} disabled={!isEditing}>
-        <ProfileField label="Date Of Birth" value={profile.dateOfBirth} editable={false} />
-      </TouchableOpacity>
+        <Section title="Basic Info">
+          <InfoItem label="Username" value={profile.username} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, username: text })} />
+          <InfoItem label="Date Of Birth" value={profile.dateOfBirth} isEditing={isEditing} onPress={showDatePicker} />
+          <InfoItem label="Gender" value={profile.gender} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, gender: text })} />
+          <InfoItem label="Health Declaration" value={profile.healthDeclaration ? 'true' : 'false'} isEditing={false} />
+        </Section>
+
+        <Section title="Contact Info">
+          <InfoItem label="Email" value={profile.email} isEditing={false} />
+          <InfoItem label="Phone" value={profile.phone} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, phone: text })} />
+          <InfoItem label="Address" value={profile.address} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, address: text })} />
+        </Section>
+
+        <Section title="Preferences">
+          <InfoItem label="Favorite Sports" value={profile.favoriteSports} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, favoriteSports: text })} />
+          <InfoItem label="Skill Level" value={profile.skillLevel} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, skillLevel: text })} />
+          <InfoItem label="Sport Rule" value={profile.sportRule} isEditing={isEditing} onChangeText={(text) => setProfile({ ...profile, sportRule: text })} />
+        </Section>
+
+        <View style={styles.buttonContainer}>
+          {isEditing ? (
+            <>
+              <TouchableOpacity style={styles.button} onPress={handleSave}>
+                <Text style={styles.buttonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={handleDiscard}>
+                <Text style={styles.buttonText}>Discard</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.button} onPress={() => setIsEditing(true)}>
+                <Text style={styles.buttonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={handleLogout}>
+                <Text style={styles.buttonText}>Logout</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </ScrollView>
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
         mode="date"
         onConfirm={handleConfirm}
         onCancel={hideDatePicker}
       />
-      <ProfileField label="Gender" value={profile.gender} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, gender: text })} />
-      <ProfileField label="Health Declaration" value={profile.healthDeclaration ? 'true' : 'false'} editable={false} />
-
-      <Text style={styles.sectionTitle}>Contact Info</Text>
-      <ProfileField label="Email" value={profile.email} editable={false} />
-      <ProfileField label="Phone" value={profile.phone} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, phone: text })} />
-      <ProfileField label="Address" value={profile.address} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, address: text })} />
-
-      <Text style={styles.sectionTitle}>Preferences</Text>
-      <ProfileField label="Favorite Sports" value={profile.favoriteSports} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, favoriteSports: text })} />
-      <ProfileField label="Skill Level" value={profile.skillLevel} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, skillLevel: text })} />
-      <ProfileField label="Sport Rule" value={profile.sportRule} editable={isEditing} onChangeText={(text) => setProfile({ ...profile, sportRule: text })} />
-
-      {isEditing ? (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={handleSave}>
-            <Text style={styles.buttonText}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={handleDiscard}>
-            <Text style={styles.buttonText}>Discard</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={() => setIsEditing(true)}>
-            <Text style={styles.buttonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={handleLogout}>
-            <Text style={styles.buttonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
-const ProfileField = ({ label, value, editable, onChangeText }) => (
-  <View style={styles.fieldContainer}>
-    <Text style={styles.fieldLabel}>{label}</Text>
-    {editable ? (
-      <TextInput style={styles.fieldInput} value={value} onChangeText={onChangeText} />
+const Section = ({ title, children }) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {children}
+  </View>
+);
+
+const InfoItem = ({ label, value, isEditing, onChangeText, onPress }) => (
+  <View style={styles.infoItem}>
+    <Text style={styles.infoLabel}>{label}</Text>
+    {isEditing ? (
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        onPressIn={onPress}
+      />
     ) : (
-      <Text style={styles.fieldValue}>{value}</Text>
+      <Text style={styles.infoValue}>{value || 'Not provided'}</Text>
     )}
   </View>
 );
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
     textAlign: 'center',
+    marginVertical: 20,
   },
   imageContainer: {
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  imagePlaceholder: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: '#ccc',
-    textAlign: 'center',
-    lineHeight: 150,
-    fontSize: 18,
-  },
-  addImageText: {
-    color: '#FF5733',
-    marginTop: 8,
+    marginBottom: 20,
   },
   profileImage: {
     width: 150,
     height: 150,
     borderRadius: 75,
   },
+  imagePlaceholder: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#e1e1e1',
+  },
+  addImageText: {
+    color: '#FF5733',
+    marginTop: 10,
+  },
+  section: {
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 8
+    marginBottom: 10,
   },
-  fieldContainer: {
+  infoItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  fieldLabel: {
+  infoLabel: {
     fontSize: 16,
     color: '#333',
   },
-  fieldValue: {
+  infoValue: {
     fontSize: 16,
     color: '#666',
   },
-  fieldInput: {
+  input: {
+    fontSize: 16,
+    color: '#666',
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 8,
+    borderColor: '#ddd',
     borderRadius: 4,
+    padding: 5,
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 16,
-    marginBottom: 32,
+    marginVertical: 20,
   },
   button: {
     backgroundColor: '#FF5733',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 40,
     borderRadius: 25,
-    flex: 1,
-    marginHorizontal: 8,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
-    textAlign: 'center',
-  },
-  editButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    alignSelf: 'center',
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  editButtonText: {
-    color: 'white',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  logoutButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    alignSelf: 'center',
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  logoutButtonText: {
-    color: 'white',
-    fontSize: 16,
-    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView, StatusBar } from 'react-native';
 import { RouteProp, useRoute, useIsFocused } from '@react-navigation/native';
 import { getGameDetails, makeReservation, cancelReservation, shuffleTeams, fetchChatMessages, sendMessage } from '../services/api';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 type RootStackParamList = {
   GameDetails: { gameId: number; token: string };
@@ -16,6 +17,55 @@ interface Message {
   timestamp: string;
   message_id: number;
 }
+
+const getColorForUsername = (username: string) => {
+  const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33F1', '#33FFF1', '#F1FF33'];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const renderMessage = ({ item }: { item: Message }) => (
+  <View style={styles.messageContainer}>
+    <Text style={[styles.username, { color: getColorForUsername(item.username) }]}>{item.username}:</Text>
+    <Text style={styles.messageText}>{item.content}</Text>
+  </View>
+);
+
+const ChatSection: React.FC<{
+  messages: Message[];
+  inputMessage: string;
+  setInputMessage: (message: string) => void;
+  handleSendMessage: () => void;
+  flatListRef: React.RefObject<FlatList<Message>>;
+}> = ({ messages, inputMessage, setInputMessage, handleSendMessage, flatListRef }) => (
+  <>
+    <View style={styles.chatContainer}>
+      <Text style={styles.chatTitle}>Game Chat</Text>
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.message_id.toString()}
+        style={styles.chatList}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+      />
+    </View>
+    <View style={styles.inputContainer}>
+      <TextInput
+        style={styles.input}
+        value={inputMessage}
+        onChangeText={setInputMessage}
+        placeholder="Type a message..."
+      />
+      <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+        <Text style={styles.sendButtonText}>Send</Text>
+      </TouchableOpacity>
+    </View>
+  </>
+);
 
 const GameDetailsScreen: React.FC = () => {
   const route = useRoute<GameDetailsScreenRouteProp>();
@@ -41,7 +91,7 @@ const GameDetailsScreen: React.FC = () => {
     };
 
     fetchGameDetails();
-  }, [gameId]);
+  }, [gameId, token]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -56,7 +106,7 @@ const GameDetailsScreen: React.FC = () => {
         clearInterval(interval);
       }
     };
-  }, [isFocused, isUserJoined, gameId]);
+  }, [isFocused, isUserJoined, gameId, token]);
 
   const loadMessages = async () => {
     if (!isUserJoined) return;
@@ -132,22 +182,6 @@ const GameDetailsScreen: React.FC = () => {
     }
   };
 
-  const getColorForUsername = (username: string) => {
-    const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33F1', '#33FFF1', '#F1FF33'];
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-      hash = username.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View style={styles.messageContainer}>
-      <Text style={[styles.username, { color: getColorForUsername(item.username) }]}>{item.username}:</Text>
-      <Text style={styles.messageText}>{item.content}</Text>
-    </View>
-  );
-
   if (!gameDetails) {
     return (
       <View style={styles.container}>
@@ -157,126 +191,170 @@ const GameDetailsScreen: React.FC = () => {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-    >
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.detailsContainer}>
-          <Text style={styles.title}>{gameDetails.name}</Text>
-          <Text>Location: {gameDetails.location}</Text>
-          <Text>Price: ${gameDetails.price}</Text>
-          <Text>Available Seats: {gameDetails.available_seats}</Text>
-          <Text>Category: {gameDetails.category}</Text>
-          <Text>Level: {gameDetails.level}</Text>
-          <Text>Date: {gameDetails.start_time.split(' ')[0]}</Text>
-          <Text>Time: {`${gameDetails.start_time.split(' ')[1]} - ${gameDetails.end_time.split(' ')[1]}`}</Text>
-          <Text>Players Joined: {gameDetails.players_joined}</Text>
-          
-          {isUserJoined ? (
-            <TouchableOpacity style={styles.joinButton} onPress={handleUnjoinGame}>
-              <Text style={styles.joinButtonText}>Unjoin Game</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.joinButton} onPress={handleJoinGame}>
-              <Text style={styles.joinButtonText}>Join Game</Text>
-            </TouchableOpacity>
-          )}
-          
-          <View style={styles.shuffleButtonsContainer}>
-            <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('random')}>
-              <Text style={styles.shuffleButtonText}>Random Shuffle</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('level')}>
-              <Text style={styles.shuffleButtonText}>Level-based Shuffle</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {shuffleResults.team1.length > 0 && (
-            <View style={styles.resultsContainer}>
-              <Text style={styles.resultsTitle}>Team 1:</Text>
-              {shuffleResults.team1.map((player, index) => (
-                <Text key={index}>{player}</Text>
-              ))}
-              <Text style={styles.resultsTitle}>Team 2:</Text>
-              {shuffleResults.team2.map((player, index) => (
-                <Text key={index}>{player}</Text>
-              ))}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.detailsContainer}>
+            <Text style={styles.title}>{gameDetails.name}</Text>
+            <View style={styles.infoContainer}>
+              <View style={styles.infoItem}>
+                <Icon name="location-outline" size={24} color="#1E90FF" />
+                <Text style={styles.infoText}>{gameDetails.location}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="cash-outline" size={24} color="#32CD32" />
+                <Text style={styles.infoText}>${gameDetails.price}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="people-outline" size={24} color="#FF6347" />
+                <Text style={styles.infoText}>{gameDetails.available_seats} seats available</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="football-outline" size={24} color="#FFA500" />
+                <Text style={styles.infoText}>{gameDetails.category}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="stats-chart-outline" size={24} color="#8A2BE2" />
+                <Text style={styles.infoText}>{gameDetails.level}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="calendar-outline" size={24} color="#20B2AA" />
+                <Text style={styles.infoText}>{gameDetails.start_time.split(' ')[0]}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="time-outline" size={24} color="#FF4500" />
+                <Text style={styles.infoText}>{`${gameDetails.start_time.split(' ')[1]} - ${gameDetails.end_time.split(' ')[1]}`}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Icon name="people" size={24} color="#4169E1" />
+                <Text style={styles.infoText}>{gameDetails.players_joined} players joined</Text>
+              </View>
             </View>
-          )}
-        </View>
+            
+            {isUserJoined ? (
+              <TouchableOpacity style={styles.unjoinButton} onPress={handleUnjoinGame}>
+                <Text style={styles.buttonText}>Unjoin Game</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.joinButton} onPress={handleJoinGame}>
+                <Text style={styles.buttonText}>Join Game</Text>
+              </TouchableOpacity>
+            )}
+            
+            <View style={styles.shuffleButtonsContainer}>
+              <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('random')}>
+                <Text style={styles.shuffleButtonText}>Random Shuffle</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('level')}>
+                <Text style={styles.shuffleButtonText}>Level-based Shuffle</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {shuffleResults.team1.length > 0 && (
+              <View style={styles.resultsContainer}>
+                <Text style={styles.resultsTitle}>Team 1:</Text>
+                {shuffleResults.team1.map((player, index) => (
+                  <Text key={index} style={styles.playerName}>{player}</Text>
+                ))}
+                <Text style={styles.resultsTitle}>Team 2:</Text>
+                {shuffleResults.team2.map((player, index) => (
+                  <Text key={index} style={styles.playerName}>{player}</Text>
+                ))}
+              </View>
+            )}
+          </View>
+        </ScrollView>
         
         {isUserJoined && (
-          <View style={styles.chatContainer}>
-            <Text style={styles.chatTitle}>Game Chat</Text>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              renderItem={renderMessage}
-              keyExtractor={(item) => item.message_id.toString()}
-              style={styles.chatList}
-              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            />
-          </View>
-        )}
-      </ScrollView>
-      
-      {isUserJoined && (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={inputMessage}
-            onChangeText={setInputMessage}
-            placeholder="Type a message..."
+          <ChatSection
+            messages={messages}
+            inputMessage={inputMessage}
+            setInputMessage={setInputMessage}
+            handleSendMessage={handleSendMessage}
+            flatListRef={flatListRef}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+        )}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
   },
   detailsContainer: {
     padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    margin: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 16,
+    color: '#212121',
+    textAlign: 'center',
+  },
+  infoContainer: {
+    marginBottom: 16,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 16,
+    marginLeft: 8,
+    color: '#424242',
   },
   joinButton: {
-    backgroundColor: '#FF5733',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    backgroundColor: '#1E90FF',
+    paddingVertical: 12,
     borderRadius: 25,
-    marginTop: 16,
+    marginBottom: 16,
   },
-  joinButtonText: {
+  unjoinButton: {
+    backgroundColor: '#FF6347',
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginBottom: 16,
+  },
+  buttonText: {
     color: 'white',
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   shuffleButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   shuffleButton: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 8,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 25,
+    borderRadius: 20,
+    flex: 0.48,
   },
   shuffleButtonText: {
     color: 'white',
@@ -284,18 +362,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   resultsContainer: {
-    marginTop: 20,
+    backgroundColor: '#F0F0F0',
+    padding: 16,
+    borderRadius: 10,
   },
   resultsTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     marginTop: 10,
+    marginBottom: 8,
+    color: '#212121',
+  },
+  playerName: {
+    fontSize: 16,
+    marginBottom: 4,
+    color: '#424242',
   },
   chatContainer: {
-    height: 300, // Adjust this value as needed
+    height: 300,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
     padding: 16,
-    marginTop: 20,
+    backgroundColor: '#FFFFFF',
   },
   chatList: {
     flex: 1,
@@ -304,6 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#212121',
   },
   messageContainer: {
     padding: 10,
@@ -315,29 +404,36 @@ const styles = StyleSheet.create({
   },
   messageText: {
     marginTop: 5,
+    color: '#424242',
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
+    backgroundColor: '#FFFFFF',
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 5,
+    borderRadius: 20,
     padding: 10,
     marginRight: 10,
+    fontSize: 16,
   },
   sendButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#1E90FF',
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+    width: 70,
   },
   sendButtonText: {
     color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
