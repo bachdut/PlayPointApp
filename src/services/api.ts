@@ -1,5 +1,6 @@
 const API_URL = 'http://127.0.0.1:8888'; // Adjust if your backend is hosted elsewhere
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Court {
   id: number;
@@ -528,4 +529,27 @@ export const sendMessage = async (gameId: number, message: string, token: string
     console.error('Error sending message:', error);
     throw error;
   }
+};
+
+// Function to share game event 
+export const createShareLink = async (gameId: number, token: string): Promise<{ share_link: string }> => {
+  const response = await fetch(`${API_URL}/create-share-link/${gameId}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`, // Use the passed token directly
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create share link');
+  }
+  return response.json();
+};
+
+export const fetchSharedGame = async (uniqueId: string) => {
+  const response = await fetch(`${API_URL}/shared-game/${uniqueId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch shared game details');
+  }
+  return response.json();
 };
