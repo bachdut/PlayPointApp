@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, Dimensions, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView, StatusBar, Share } from 'react-native';
 import { RouteProp, useRoute, useIsFocused } from '@react-navigation/native';
-import { getGameDetails, makeReservation, cancelReservation, shuffleTeams, fetchChatMessages, sendMessage } from '../services/api';
+import { getGameDetails, makeReservation, cancelReservation, shuffleTeams, fetchChatMessages, sendMessage, createShareLink } from '../services/api';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 type RootStackParamList = {
@@ -182,6 +182,21 @@ const GameDetailsScreen: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const response = await createShareLink(gameId, token); // Ensure the correct token is used here
+      const result = await Share.share({
+        message: `Join my game! ${response.share_link}`,
+      });
+      if (result.action === Share.sharedAction) {
+        console.log('Shared successfully');
+      }
+    } catch (error) {
+      console.error('Error sharing game:', error); // Log the error details
+      Alert.alert('Error', 'Unable to share the game. Please try again.');
+    }
+  };
+
   if (!gameDetails) {
     return (
       <View style={styles.container}>
@@ -236,15 +251,21 @@ const GameDetailsScreen: React.FC = () => {
               </View>
             </View>
             
-            {isUserJoined ? (
-              <TouchableOpacity style={styles.unjoinButton} onPress={handleUnjoinGame}>
-                <Text style={styles.buttonText}>Unjoin Game</Text>
+            <View style={styles.actionButtonsContainer}>
+              {isUserJoined ? (
+                <TouchableOpacity style={styles.unjoinButton} onPress={handleUnjoinGame}>
+                  <Text style={styles.buttonText}>Unjoin Game</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.joinButton} onPress={handleJoinGame}>
+                  <Text style={styles.buttonText}>Join Game</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <Icon name="share-outline" size={24} color="#FFFFFF" />
+                <Text style={styles.buttonText}>Share Game</Text>
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.joinButton} onPress={handleJoinGame}>
-                <Text style={styles.buttonText}>Join Game</Text>
-              </TouchableOpacity>
-            )}
+            </View>
             
             <View style={styles.shuffleButtonsContainer}>
               <TouchableOpacity style={styles.shuffleButton} onPress={() => handleShuffle('random')}>
@@ -326,22 +347,39 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: '#424242',
   },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   joinButton: {
+    flex: 1,
     backgroundColor: '#1E90FF',
     paddingVertical: 12,
     borderRadius: 25,
-    marginBottom: 16,
+    marginRight: 8,
   },
   unjoinButton: {
+    flex: 1,
     backgroundColor: '#FF6347',
     paddingVertical: 12,
     borderRadius: 25,
-    marginBottom: 16,
+    marginRight: 8,
+  },
+  shareButton: {
+    flex: 1,
+    backgroundColor: '#FF6F00',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: 'white',
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   shuffleButtonsContainer: {
